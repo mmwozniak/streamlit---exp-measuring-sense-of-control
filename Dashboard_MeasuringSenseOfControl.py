@@ -194,6 +194,8 @@ if button_radio == 'Introduction':
     st.title('Introduction')
     st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with explicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
     st.image(image="img/tense cats.jpg", width=250)
+    st.markdown("***Figure 1.*** *This cat has lost sense of control* ")
+    
     st.markdown('### What is sense of control and why it matters')
     st.markdown(''' 
                 According to the standard definition Sense of Control or Sense of Agency (we will use these terms interchangeably here) 
