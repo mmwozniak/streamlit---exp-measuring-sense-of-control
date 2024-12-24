@@ -192,7 +192,7 @@ df_avg_metrics = df_long_metrics.groupby("SubNum").mean().reset_index().drop("bl
 
 if button_radio == 'Introduction':
     st.title('Introduction')
-    st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with explicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
+    st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with e xplicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
     st.image(image="img/tense cats.jpg", width=250)
     st.markdown("***Figure 1.*** *This cat has lost sense of control* ")
     
@@ -912,153 +912,155 @@ if button_radio == 'Cluster analysis':
     st.markdown('''Cluster analysis detecting different patterns of responses in the experimental task. 
                 ''')
     
-    # PREPARE DATA
-    selected_exp_num = selected_selectbox[11:]
-    url_link = f'DATA_MeasuringSoA_long_Exp{selected_exp_num}.csv'
-    df = pd.read_csv(url_link)
-    # Adjust the control_level to be on the 0-100 scale 
-    df['control_level'] = df['control_level']*100
-    # Exclude participants that do not fulfill the inclusion critia
-    if selectbox_exclude_outliers == "Yes":
-        df = df[df['Include'] == 1]
+    st.markdown(">>> :::CURRENTLY UNAVAILABLE DUE TO LIMITATIONS IN COMPUTING POWER::: ")
+    
+    # # PREPARE DATA
+    # selected_exp_num = selected_selectbox[11:]
+    # url_link = f'DATA_MeasuringSoA_long_Exp{selected_exp_num}.csv'
+    # df = pd.read_csv(url_link)
+    # # Adjust the control_level to be on the 0-100 scale 
+    # df['control_level'] = df['control_level']*100
+    # # Exclude participants that do not fulfill the inclusion critia
+    # if selectbox_exclude_outliers == "Yes":
+    #     df = df[df['Include'] == 1]
 
     
     
-    # PREPARE DATA FOR CLUSTER ANALYSIS
-    # Prepare datasets
-    avg_diff = df.loc[:,["SubNum", "control_level", "difference"]]
-    x = avg_diff.groupby(["SubNum", "control_level"])
-    x = x.mean().reset_index().pivot(columns="control_level", index="SubNum", values="difference")
+    # # PREPARE DATA FOR CLUSTER ANALYSIS
+    # # Prepare datasets
+    # avg_diff = df.loc[:,["SubNum", "control_level", "difference"]]
+    # x = avg_diff.groupby(["SubNum", "control_level"])
+    # x = x.mean().reset_index().pivot(columns="control_level", index="SubNum", values="difference")
     
-    # Create a df_kmeans dataframe that will be useful later
-    df_kmeans = x.copy().reset_index()
+    # # Create a df_kmeans dataframe that will be useful later
+    # df_kmeans = x.copy().reset_index()
     
     
-    ##########################
-    # PERFORM CLUSTER ANALYSIS FOR THREE CLUSTERS
+    # ##########################
+    # # PERFORM CLUSTER ANALYSIS FOR THREE CLUSTERS
     
-    st.markdown("### Perform cluster analysis for 3 clusters")
+    # st.markdown("### Perform cluster analysis for 3 clusters")
     
-    # Perform the target cluster analysis   
-    k = 3
-    kmeans = KMeans(init = "k-means++", n_clusters=k, n_init = 20)
-    kmeans.fit(x)
-    # Add to the data
-    df_kmeans['Cluster'] = kmeans.labels_ + 1
-    df_kmeans['Participant'] = df['SubNum']
-    #df_kmeans = pd.concat([df_kmeans, df[resp_mean]], axis=1)
+    # # Perform the target cluster analysis   
+    # k = 3
+    # kmeans = KMeans(init = "k-means++", n_clusters=k, n_init = 20)
+    # kmeans.fit(x)
+    # # Add to the data
+    # df_kmeans['Cluster'] = kmeans.labels_ + 1
+    # df_kmeans['Participant'] = df['SubNum']
+    # #df_kmeans = pd.concat([df_kmeans, df[resp_mean]], axis=1)
 
-    cluster_centers = kmeans.cluster_centers_
-    #print('Cluster centres: ',cluster_centers)
-    print('Cluster sizes: ')
-    print(df_kmeans['Cluster'].value_counts())
+    # cluster_centers = kmeans.cluster_centers_
+    # #print('Cluster centres: ',cluster_centers)
+    # print('Cluster sizes: ')
+    # print(df_kmeans['Cluster'].value_counts())
     
-    # Melt the data into the long format
-    df_k_long = pd.melt(df_kmeans, id_vars=['Participant', 'Cluster'], value_vars=df_kmeans.columns[1:], var_name='Control level', value_name='Difference')
-    df_k_long['Control'] = df_k_long['Control level'].astype(int)
-    #df_k_long['Control'] = pd.to_numeric(df_k_long['Control'])*100
+    # # Melt the data into the long format
+    # df_k_long = pd.melt(df_kmeans, id_vars=['Participant', 'Cluster'], value_vars=df_kmeans.columns[1:], var_name='Control level', value_name='Difference')
+    # df_k_long['Control'] = df_k_long['Control level'].astype(int)
+    # #df_k_long['Control'] = pd.to_numeric(df_k_long['Control'])*100
 
-    # Line plot showing the clusters
-    fig1, ax1 = plt.subplots()
-    fig1.set_size_inches(10, 8)
+    # # Line plot showing the clusters
+    # fig1, ax1 = plt.subplots()
+    # fig1.set_size_inches(10, 8)
 
-    # Custom palette
-    cust_pal = sns.color_palette('Set1')
-    pal_exp3clust = [  cust_pal[2], cust_pal[0], cust_pal[1] ] #, cust_pal[3], ]
+    # # Custom palette
+    # cust_pal = sns.color_palette('Set1')
+    # pal_exp3clust = [  cust_pal[2], cust_pal[0], cust_pal[1] ] #, cust_pal[3], ]
 
-    # Plot data
-    sns.lineplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust, legend=None)
-    sns.scatterplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust)
-    plt.plot([0,100], [0,0], color='k')
-    plt.ylim([-100,100])
+    # # Plot data
+    # sns.lineplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust, legend=None)
+    # sns.scatterplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust)
+    # plt.plot([0,100], [0,0], color='k')
+    # plt.ylim([-100,100])
 
-    # Labels and appearance
-    plt.title(f'Cluster analysis: three clusters solution (Exp {selected_exp_num})')
-    plt.xlabel('Objective level of control')
-    plt.ylabel('Difference')
-    st.pyplot(fig1)
-    st.markdown(f"***Figure 1.*** *Results of the k-means cluster analysis for a solution with three clusters. Data from Experiment {selected_exp_num}*. ")
+    # # Labels and appearance
+    # plt.title(f'Cluster analysis: three clusters solution (Exp {selected_exp_num})')
+    # plt.xlabel('Objective level of control')
+    # plt.ylabel('Difference')
+    # st.pyplot(fig1)
+    # st.markdown(f"***Figure 1.*** *Results of the k-means cluster analysis for a solution with three clusters. Data from Experiment {selected_exp_num}*. ")
 
 
-    ##########################
-    # PERFORM MULTIPLE CLUSTER ANALYSES
+    # ##########################
+    # # PERFORM MULTIPLE CLUSTER ANALYSES
     
-    st.markdown("### Determine the best number of clusters using the Silhouette score")
-    st.markdown(">>> :::WAIT FOR CLUSTER ANALYSIS TO BE COMPLETED (SHOULD TAKE UP TO 30 SECONDS)::: ")
+    # st.markdown("### Determine the best number of clusters using the Silhouette score")
+    # st.markdown(">>> :::WAIT FOR CLUSTER ANALYSIS TO BE COMPLETED (SHOULD TAKE UP TO 30 SECONDS)::: ")
     
-    # Determine the max silhoutte score
-    silhouette_list = np.zeros([11,2])
-    for kk in range(2,11):
-        kmeans_test = KMeans(init = "k-means++", n_clusters=kk, n_init = 20)
-        kmeans_test.fit(x)
-        silh_score = silhouette_score(x, kmeans_test.labels_)
-        silhouette_list[kk,:] = [kk, silh_score]
-        print('Silhouette score for n=',str(kk),': ',str(silh_score))
+    # # Determine the max silhoutte score
+    # silhouette_list = np.zeros([11,2])
+    # for kk in range(2,11):
+    #     kmeans_test = KMeans(init = "k-means++", n_clusters=kk, n_init = 20)
+    #     kmeans_test.fit(x)
+    #     silh_score = silhouette_score(x, kmeans_test.labels_)
+    #     silhouette_list[kk,:] = [kk, silh_score]
+    #     print('Silhouette score for n=',str(kk),': ',str(silh_score))
     
-    # Text describing the Silhouette score
-    st.markdown('''The Silhouette plot allows to select the number of clusters that provide the best fit to the data. 
-                The number of clusters that has the highest score 
-                ''')
+    # # Text describing the Silhouette score
+    # st.markdown('''The Silhouette plot allows to select the number of clusters that provide the best fit to the data. 
+    #             The number of clusters that has the highest score 
+    #             ''')
                 
-    # Plot silhouette scores for each cluster size
-    fig2, ax2 = plt.subplots()
-    fig2.set_size_inches(10, 4)
-    sns.lineplot(x=silhouette_list[:,0], y=silhouette_list[:,1], color='red').set(title='Silhouette plot', xlabel='Number of clusters', ylabel='Silhouette score')
-    st.pyplot(fig2)
-    st.markdown(f"***Figure 2.*** *Siluoette scores for each k value of the number of clusters. Data from Experiment {selected_exp_num}*. ")
+    # # Plot silhouette scores for each cluster size
+    # fig2, ax2 = plt.subplots()
+    # fig2.set_size_inches(10, 4)
+    # sns.lineplot(x=silhouette_list[:,0], y=silhouette_list[:,1], color='red').set(title='Silhouette plot', xlabel='Number of clusters', ylabel='Silhouette score')
+    # st.pyplot(fig2)
+    # st.markdown(f"***Figure 2.*** *Siluoette scores for each k value of the number of clusters. Data from Experiment {selected_exp_num}*. ")
     
-    # Find the number of clusters with the highest silhouette score
-    max_silhouette = silhouette_list[np.argmax(silhouette_list[:, 1]), 0]
-    max_silhouette_first4 = silhouette_list[np.argmax(silhouette_list[:3, 1]), 0]
+    # # Find the number of clusters with the highest silhouette score
+    # max_silhouette = silhouette_list[np.argmax(silhouette_list[:, 1]), 0]
+    # max_silhouette_first4 = silhouette_list[np.argmax(silhouette_list[:3, 1]), 0]
     
-    # Plot the final cluster analysis results
-    st.markdown("**Results from the Silhuoette plot:**")
-    st.markdown(f"- The optimal number of clusters is: {max_silhouette:.0f} (based on the highest silhouette score)")
-    st.markdown(f"- The optimal number of clusters if cannot be higher than 4 is: {max_silhouette_first4:.0f} (based on the highest silhouette score)")
+    # # Plot the final cluster analysis results
+    # st.markdown("**Results from the Silhuoette plot:**")
+    # st.markdown(f"- The optimal number of clusters is: {max_silhouette:.0f} (based on the highest silhouette score)")
+    # st.markdown(f"- The optimal number of clusters if cannot be higher than 4 is: {max_silhouette_first4:.0f} (based on the highest silhouette score)")
 
     
-    ##########################
-    # PERFORM CLUSTER ANALYSIS FOR THE HIGHEST SILHOUETTE SCORE
+    # ##########################
+    # # PERFORM CLUSTER ANALYSIS FOR THE HIGHEST SILHOUETTE SCORE
 
-    # Perform the target cluster analysis   
-    k = int(max_silhouette_first4)
-    kmeans = KMeans(init = "k-means++", n_clusters=k, n_init = 20)
-    kmeans.fit(x)
-    # Add to the data
-    df_kmeans['Cluster'] = kmeans.labels_ + 1
-    df_kmeans['Participant'] = df['SubNum']
-    #df_kmeans = pd.concat([df_kmeans, df[resp_mean]], axis=1)
+    # # Perform the target cluster analysis   
+    # k = int(max_silhouette_first4)
+    # kmeans = KMeans(init = "k-means++", n_clusters=k, n_init = 20)
+    # kmeans.fit(x)
+    # # Add to the data
+    # df_kmeans['Cluster'] = kmeans.labels_ + 1
+    # df_kmeans['Participant'] = df['SubNum']
+    # #df_kmeans = pd.concat([df_kmeans, df[resp_mean]], axis=1)
 
-    cluster_centers = kmeans.cluster_centers_
-    #print('Cluster centres: ',cluster_centers)
-    print('Cluster sizes: ')
-    print(df_kmeans['Cluster'].value_counts())
+    # cluster_centers = kmeans.cluster_centers_
+    # #print('Cluster centres: ',cluster_centers)
+    # print('Cluster sizes: ')
+    # print(df_kmeans['Cluster'].value_counts())
     
-    # Melt the data into the long format
-    df_k_long = pd.melt(df_kmeans, id_vars=['Participant', 'Cluster'], value_vars=df_kmeans.columns[1:], var_name='Control level', value_name='Difference')
-    df_k_long['Control'] = df_k_long['Control level'].astype(int)
-    #df_k_long['Control'] = pd.to_numeric(df_k_long['Control'])*100
+    # # Melt the data into the long format
+    # df_k_long = pd.melt(df_kmeans, id_vars=['Participant', 'Cluster'], value_vars=df_kmeans.columns[1:], var_name='Control level', value_name='Difference')
+    # df_k_long['Control'] = df_k_long['Control level'].astype(int)
+    # #df_k_long['Control'] = pd.to_numeric(df_k_long['Control'])*100
 
-    # Line plot showing the clusters
-    fig3, ax3 = plt.subplots()
-    fig3.set_size_inches(10, 8)
+    # # Line plot showing the clusters
+    # fig3, ax3 = plt.subplots()
+    # fig3.set_size_inches(10, 8)
 
-    # Custom palette
-    cust_pal = sns.color_palette('Set1')
-    pal_exp3clust = [  cust_pal[2], cust_pal[0], cust_pal[1] ] #, cust_pal[3], ]
+    # # Custom palette
+    # cust_pal = sns.color_palette('Set1')
+    # pal_exp3clust = [  cust_pal[2], cust_pal[0], cust_pal[1] ] #, cust_pal[3], ]
 
-    # Plot data
-    sns.lineplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust, legend=None)
-    sns.scatterplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust)
-    plt.plot([0,100], [0,0], color='k')
-    plt.ylim([-100,100])
+    # # Plot data
+    # sns.lineplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust, legend=None)
+    # sns.scatterplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust)
+    # plt.plot([0,100], [0,0], color='k')
+    # plt.ylim([-100,100])
 
-    # Labels and appearance
-    plt.title(f'Cluster analysis: {k} clusters (Exp {selected_exp_num})')
-    plt.xlabel('Objective level of control')
-    plt.ylabel('Difference')
-    st.pyplot(fig3)
-    st.markdown(f"***Figure 3.*** *Results of the cluster analysis for the number of clusters with the highest Siluoette score. Data from Experiment {selected_exp_num}*. ")
+    # # Labels and appearance
+    # plt.title(f'Cluster analysis: {k} clusters (Exp {selected_exp_num})')
+    # plt.xlabel('Objective level of control')
+    # plt.ylabel('Difference')
+    # st.pyplot(fig3)
+    # st.markdown(f"***Figure 3.*** *Results of the cluster analysis for the number of clusters with the highest Siluoette score. Data from Experiment {selected_exp_num}*. ")
     
 
 
