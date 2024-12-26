@@ -192,7 +192,7 @@ df_avg_metrics = df_long_metrics.groupby("SubNum").mean().reset_index().drop("bl
 
 if button_radio == 'Introduction':
     st.title('Introduction')
-    st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with e xplicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
+    st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with explicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
     st.image(image="img/tense cats.jpg", width=250)
     st.markdown("***Figure 1.*** *This cat has lost sense of control* ")
     
@@ -463,7 +463,7 @@ if button_radio == 'Comparison of experiments':
 #%% BUTTON == 'Results of specific experiments'
 
 if button_radio == 'Results of specific experiments':
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title(f"Main results from the selected experiment")
     st.markdown('''This section shows the stats and plots for a selected experiment. 
                 ''')
@@ -621,7 +621,7 @@ if button_radio == 'Results of specific experiments':
 
 if button_radio == 'Reliability of data from Block 1':
     
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title("How reliable is data from the first block?")
     st.markdown('''In our study participants rated their sense of control over the red ball 5 times 
                 for each level of control. Then we calculated the average from all of these responses 
@@ -797,7 +797,7 @@ if button_radio == 'Reliability of data from Block 1':
 
 if button_radio == 'Correlations within levels of control':
     
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title("How reliable is data from the first block if we look within each level of control?")
     st.markdown('''The interpretation of this data is a bit more complex.
                 ''')
@@ -907,12 +907,12 @@ if button_radio == 'Correlations within levels of control':
 
 if button_radio == 'Cluster analysis':
     
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title(f"Cluster analysis")
     st.markdown('''Cluster analysis detecting different patterns of responses in the experimental task. 
                 ''')
     
-    st.markdown(">>> :::CURRENTLY UNAVAILABLE DUE TO LIMITATIONS IN COMPUTING POWER::: ")
+    st.markdown(">>> :::DUE TO COMPUTING POWER LIMITATIONS THE FIGURES ARE PRE-RENDERED::: ")
     
     # # PREPARE DATA
     # selected_exp_num = selected_selectbox[11:]
@@ -939,7 +939,7 @@ if button_radio == 'Cluster analysis':
     # ##########################
     # # PERFORM CLUSTER ANALYSIS FOR THREE CLUSTERS
     
-    # st.markdown("### Perform cluster analysis for 3 clusters")
+    st.markdown("### Perform cluster analysis for 3 clusters")
     
     # # Perform the target cluster analysis   
     # k = 3
@@ -979,13 +979,16 @@ if button_radio == 'Cluster analysis':
     # plt.xlabel('Objective level of control')
     # plt.ylabel('Difference')
     # st.pyplot(fig1)
-    # st.markdown(f"***Figure 1.*** *Results of the k-means cluster analysis for a solution with three clusters. Data from Experiment {selected_exp_num}*. ")
+    
+    fig_filename = f'figures_all_cluster_analyses/cluster_3clusters_{selected_selectbox}_Exclude_{selectbox_exclude_outliers}.png'
+    st.image(image=fig_filename)
+    st.markdown(f"***Figure 1.*** *Results of the k-means cluster analysis for a solution with three clusters. Data from Experiment {selected_exp_num}*. ")
 
 
     # ##########################
     # # PERFORM MULTIPLE CLUSTER ANALYSES
     
-    # st.markdown("### Determine the best number of clusters using the Silhouette score")
+    st.markdown("### Determine the best number of clusters using the Silhouette score")
     # st.markdown(">>> :::WAIT FOR CLUSTER ANALYSIS TO BE COMPLETED (SHOULD TAKE UP TO 30 SECONDS)::: ")
     
     # # Determine the max silhoutte score
@@ -997,17 +1000,19 @@ if button_radio == 'Cluster analysis':
     #     silhouette_list[kk,:] = [kk, silh_score]
     #     print('Silhouette score for n=',str(kk),': ',str(silh_score))
     
-    # # Text describing the Silhouette score
-    # st.markdown('''The Silhouette plot allows to select the number of clusters that provide the best fit to the data. 
-    #             The number of clusters that has the highest score 
-    #             ''')
+    # Text describing the Silhouette score
+    st.markdown('''The Silhouette plot allows to select the number of clusters that provide the best fit to the data. 
+                The number of clusters that has the highest score 
+                ''')
                 
     # # Plot silhouette scores for each cluster size
     # fig2, ax2 = plt.subplots()
     # fig2.set_size_inches(10, 4)
     # sns.lineplot(x=silhouette_list[:,0], y=silhouette_list[:,1], color='red').set(title='Silhouette plot', xlabel='Number of clusters', ylabel='Silhouette score')
     # st.pyplot(fig2)
-    # st.markdown(f"***Figure 2.*** *Siluoette scores for each k value of the number of clusters. Data from Experiment {selected_exp_num}*. ")
+    fig_filename = f'figures_all_cluster_analyses/cluster_silhuoette_{selected_selectbox}_Exclude_{selectbox_exclude_outliers}.png'
+    st.image(image=fig_filename)
+    st.markdown(f"***Figure 2.*** *Silhouette scores for each k value of the number of clusters. Data from Experiment {selected_exp_num}*. ")
     
     # # Find the number of clusters with the highest silhouette score
     # max_silhouette = silhouette_list[np.argmax(silhouette_list[:, 1]), 0]
@@ -1060,7 +1065,9 @@ if button_radio == 'Cluster analysis':
     # plt.xlabel('Objective level of control')
     # plt.ylabel('Difference')
     # st.pyplot(fig3)
-    # st.markdown(f"***Figure 3.*** *Results of the cluster analysis for the number of clusters with the highest Siluoette score. Data from Experiment {selected_exp_num}*. ")
+    fig_filename = f'figures_all_cluster_analyses/cluster_maxsilh_clusters_{selected_selectbox}_Exclude_{selectbox_exclude_outliers}.png'
+    st.image(image=fig_filename)
+    st.markdown(f"***Figure 3.*** *Results of the cluster analysis for the number of clusters with the highest Siluoette score. Data from Experiment {selected_exp_num}*. ")
     
 
 
@@ -1071,7 +1078,7 @@ if button_radio == 'Cluster analysis':
 
 if button_radio == 'Metrics of individual differences':
     
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title("Can we use participants' responses in the task as a measure of individual differences?")
     st.markdown('''The results of the cluster analysis suggest that we can distinguish clusters of participants 
                 that are characterized by the tendency to report much lower sense of control than their objective 
@@ -1098,7 +1105,7 @@ if button_radio == 'Metrics of individual differences':
     ##########################
     
     # DESCRIBE BIAS
-    st.markdown('''**:blue[BIAS (blue in the figures)]** Bias reflects whether a given participant has the tendency to underestimate 
+    st.markdown('''**BIAS (blue in the figures)** Bias reflects whether a given participant has the tendency to underestimate 
                 their subjective level of control, to overestimate it or to display no bias. 
                 It is calculated as the sum of differences between objective and reported 
                 level of control (and then standardized so the values fall between -1 and 1). 
@@ -1133,7 +1140,7 @@ if button_radio == 'Metrics of individual differences':
     #########################
     
     # DESCRIBE ACCURACY
-    st.markdown('''**:orange[ACCURACY (orange in the figures)]** Accuracy reflects how close participants' responses were to the objective 
+    st.markdown('''**ACCURACY (orange in the figures)** Accuracy reflects how close participants' responses were to the objective 
                 level of control. 
                 It is calculated as 1 minus the sum of **absolute** differences between 
                 objective and reported level of control (and then standardized so the values fall between 0 and 1). 
@@ -1168,7 +1175,7 @@ if button_radio == 'Metrics of individual differences':
     #########################
     
     # DESCRIBE RANDOMNESS
-    st.markdown('''**:green[RANDOMNESS (green in the figures)]** Randomness reflects whether participants responses were closer to the pattern 
+    st.markdown('''**RANDOMNESS (green in the figures)** Randomness reflects whether participants responses were closer to the pattern 
                 expected if they responded randomly (in such case all of their responses should be around the value of 50%) or closer to the 
                 objective level of control. This metric attempts to indicate which participants were likely not paying attention when doing the task 
                 or are characterized by very high uncertainty when doing the task. 
@@ -1203,7 +1210,7 @@ if button_radio == 'Metrics of individual differences':
     
 if button_radio == 'Explore data from each participant':
     
-    st.title(f":orange[Selected experiment: {selected_selectbox}]")
+    st.title(f"Selected experiment: {selected_selectbox}")
     st.title("Explore data from each participant")
     st.markdown('''This section allows to investigate one-by-one the data from each participant. The participants 
                 are sorted according to their response bias: from the largest negative bias (participants who strongly 
