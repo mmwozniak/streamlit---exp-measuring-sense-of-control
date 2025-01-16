@@ -16,14 +16,16 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt  # only import this one function from matplotlib
 from matplotlib.patches import Patch
-import statsmodels as sm         # 
 import seaborn as sns            # 
 import scipy as sp               #  
-#import pingouin as pg
-import os                        # operating system
-import glob
-import statsmodels.formula.api as smf
-import pickle
+
+#import statsmodels as sm         # 
+#import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from statsmodels.formula.api import mixedlm
+from statsmodels.stats.anova import AnovaRM
+from pingouin import rm_anova
+import pingouin  as pg
 
 # CLUSTER ANALYSIS
 from sklearn.cluster import KMeans
@@ -83,6 +85,7 @@ button_radio = st.sidebar.radio("Choose what you want to see:",
                                  "Task description",
                                  "Comparison of experiments", 
                                  "Results of specific experiments",
+                                 "Preregistered analyses",
                                  "Reliability of data from Block 1",
                                  "Cluster analysis",
                                  "Metrics of individual differences",
@@ -460,6 +463,34 @@ if button_radio == 'Comparison of experiments':
     
     #res2 = pd.DataFrame(res)
     
+    #####
+    # BIG ANOVA
+    
+    # Load data
+    df_long_all = pd.read_csv('DATA_MeasuringSoA_long_ALL.csv')
+    
+    # Perform the ANOVA
+    st.markdown(f"#### Big analysis: 5x11 repeated measures ANOVA - means")
+    # Prepare data
+    df_temp = df_long_all.loc[df_long_all["Include"] == 1,["SubNum", "control_level", "Experiment", "difference"]].groupby(["SubNum","control_level", "Experiment"]).mean().reset_index()
+    # PINGOUIN
+    # Perform repeated measures ANOVA
+    anova_results = rm_anova(data=df_temp, dv='difference', within=['control_level', 'Experiment'], subject='SubNum')
+    #st.markdown("PINGUOIN RESULTS:")
+    st.table(anova_results)
+    
+    
+    # Perform the ANOVA on STDs
+    st.markdown(f"#### Big analysis: 5x11 repeated measures ANOVA - STDs")
+    # Prepare data
+    df_temp = df_long_all.loc[df_long_all["Include"] == 1,["SubNum", "control_level", "Experiment", "difference"]].groupby(["SubNum","control_level", "Experiment"]).std().reset_index()
+    # PINGOUIN
+    # Perform repeated measures ANOVA
+    anova_results = rm_anova(data=df_temp, dv='difference', within=['control_level', 'Experiment'], subject='SubNum')
+    #st.markdown("PINGUOIN RESULTS:")
+    st.table(anova_results)
+
+    
 #%% BUTTON == 'Results of specific experiments'
 
 if button_radio == 'Results of specific experiments':
@@ -479,41 +510,9 @@ if button_radio == 'Results of specific experiments':
     if selectbox_exclude_outliers == "Yes":
         df = df[df['Include'] == 1]
     
-    # Perform t-tests:
-    t_test_results = []
-    for control_level in range(11):
-        control = control_level * 10
-        data2test = df.loc[df['control_level'] == control, ['SubNum','difference']].groupby('SubNum').mean().reset_index()
-        results = sp.stats.ttest_1samp(data2test['difference'], popmean=0, axis=0, nan_policy='propagate', alternative='two-sided')
-        t_test_results.append(results)
-    results_t_tests = pd.DataFrame(t_test_results, columns=['T-value', 'p-value']).reset_index().rename(columns={"index" : "Control"})
-    # Calculate Bonferroni-corrected p-values
-    results_t_tests['p-value corrected'] = results_t_tests['p-value'].apply(lambda x: min(x*11, 1))
-    # Calculate logarithm of the p-value
-    results_t_tests['Log p-value'] = np.log10(results_t_tests['p-value'])
-    results_t_tests['Control'] = results_t_tests['Control'] * 10
-    #results_t_tests['Control'] = results_t_tests['Control'].apply(str)
-    
     
     # ===================================================
 
-    # # Prepare the table
-    # traits_tab = val_summary#.iloc[:,2:23]
-    # traits_tab = traits_tab.loc[['mean', 'std', '25%', '50%', '75%'],:].transpose().round(2)
-    
-    # # Tables - separately for each valence
-    # st.markdown("##### Negative traits")
-    # st.table(traits_tab.iloc[3:9,:].style.format("{:.2f}"))
-    # st.markdown("##### Neutral traits")
-    # st.table(traits_tab.iloc[9:15,:].style.format("{:.2f}"))
-    # st.markdown("##### Positive traits")
-    # st.table(traits_tab.iloc[15:21,:].style.format("{:.2f}"))
-    # st.markdown("##### Additional traits")
-    # st.markdown('''Attractive is an additional trait, because it is not a psychological trait (unlike the other positive traits). 
-    #             Political and religious are additional traits, because they showed the greatest variability in whether they 
-    #             were judged as positive, negative or neutral.''')
-    # st.table(traits_tab.iloc[0:3,:].style.format("{:.2f}"))
-    
     
     # PLOT RESULTS 1
     st.markdown('### Subjective reports of sense of control for each objective level of control')
@@ -539,10 +538,101 @@ if button_radio == 'Results of specific experiments':
     
     #####################
     # SHOW RESULTS OF THE T-TEST
-    # Show table with the results of t-tests
-    st.markdown("##### Experiment 1: T-test results")
-    st.table(results_t_tests.loc[:,['Control', 'T-value', 'p-value','p-value corrected']].style.format("{:.3f}"))
+    
+    st.markdown("## **ANOVAs with post hoc tests (on averages across blocks)**")
         
+    # Experiment 1C: 2x11 ANOVA
+    if selected_exp_num == '1C':
+        
+        st.markdown(f"#### Experiment {selected_exp_num}: 2x11 repeated measures ANOVA")
+        # Prepare data
+        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "scale", "difference"]].groupby(["SubNum","control_level", "scale"]).mean().reset_index()
+
+        # PINGOUIN
+        # Perform repeated measures ANOVA
+        anova_results = rm_anova(data=df_temp, dv='difference', within=['control_level', 'scale'], subject='SubNum')
+        #st.markdown("PINGUOIN RESULTS:")
+        st.table(anova_results)
+        
+        
+        
+    elif selected_exp_num == '4':
+        
+        st.markdown(f"#### Experiment {selected_exp_num}: Friedman test")
+        # Prepare data
+        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
+
+        # PINGOUIN
+        # Perform repeated measures ANOVA
+        friedman_results = pg.friedman(data=df_temp, dv='difference', within='control_level', subject='SubNum')
+        #st.markdown("PINGUOIN RESULTS:")
+        st.table(friedman_results)
+        
+        
+    else:        
+        # Prepare data
+        
+        st.markdown(f"#### Experiment {selected_exp_num}: Friedman test")
+        # Prepare data
+        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
+        
+        # STATSMODELS
+        # Fit the model
+        # anova = AnovaRM(df_temp, depvar='difference', subject='SubNum', within=['control_level']).fit()
+        # st.markdown("STATSMODELS RESULTS:")
+        # st.text(anova)
+        
+        # PINGOUIN
+        # Perform repeated measures ANOVA
+        anova_results = rm_anova(data=df_temp, dv='difference', within='control_level', subject='SubNum')
+        #st.markdown("PINGUOIN RESULTS:")
+        st.table(anova_results)
+    
+    #################################
+    ##### Results of the post hoc t-tests
+    if selected_exp_num == '4':
+        
+        # Perform t-tests:
+        t_test_results = []
+        for control_level in range(11):
+            control = control_level * 10
+            median_hypothesis  = 0
+            data2test = df.loc[df['control_level'] == control, ['SubNum','difference']].groupby('SubNum').mean().reset_index()
+            results = sp.stats.wilcoxon(data2test['difference'] - median_hypothesis, axis=0, nan_policy='propagate', alternative='two-sided')
+            t_test_results.append(results)
+        results_t_tests = pd.DataFrame(t_test_results, columns=['W-value', 'p-value']).reset_index().rename(columns={"index" : "Control"})
+        # Calculate Bonferroni-corrected p-values
+        results_t_tests['p-value corrected'] = results_t_tests['p-value'].apply(lambda x: min(x*11, 1))
+        # Calculate logarithm of the p-value
+        results_t_tests['Log p-value'] = np.log10(results_t_tests['p-value'])
+        results_t_tests['Control'] = results_t_tests['Control'] * 10
+        
+        # SHOW RESULTS OF THE T-TEST
+        # Show table with the results of t-tests
+        st.markdown(f"##### Experiment {selected_exp_num}: Post hoc Wilcoxon results")
+        st.table(results_t_tests.loc[:,['Control', 'W-value', 'p-value','p-value corrected']].style.format("{:.3f}"))
+        
+    else:
+        
+        # Perform t-tests:
+        t_test_results = []
+        for control_level in range(11):
+            control = control_level * 10
+            data2test = df.loc[df['control_level'] == control, ['SubNum','difference']].groupby('SubNum').mean().reset_index()
+            results = sp.stats.ttest_1samp(data2test['difference'], popmean=0, axis=0, nan_policy='propagate', alternative='two-sided')
+            t_test_results.append(results)
+        results_t_tests = pd.DataFrame(t_test_results, columns=['T-value', 'p-value']).reset_index().rename(columns={"index" : "Control"})
+        # Calculate Bonferroni-corrected p-values
+        results_t_tests['p-value corrected'] = results_t_tests['p-value'].apply(lambda x: min(x*11, 1))
+        # Calculate logarithm of the p-value
+        results_t_tests['Log p-value'] = np.log10(results_t_tests['p-value'])
+        results_t_tests['Control'] = results_t_tests['Control'] * 10
+        
+        # SHOW RESULTS OF THE T-TEST
+        # Show table with the results of t-tests
+        st.markdown(f"##### Experiment {selected_exp_num}: T-test results")
+        st.table(results_t_tests.loc[:,['Control', 'T-value', 'p-value','p-value corrected']].style.format("{:.3f}"))
+    
     
     #####################
     # PLOT 2: RESULTS - STD
@@ -616,6 +706,92 @@ if button_radio == 'Results of specific experiments':
         st.pyplot(fig3)
         st.markdown(f"***Figure 3.*** *Comparison between LR and RL scales. Data plots difference between reported and objective level of control for each objective level of control. Data from Experiment {selected_exp_num}*. ")
         
+        
+#%% BUTTON == 'Preregistered analyses'
+
+if button_radio == 'Preregistered analyses':
+    
+    st.title(f"Selected experiment: {selected_selectbox}")
+    st.title("Preregistered analyses")
+    st.markdown('''Below we present the results of preregistered analyses.
+                ''')
+            
+    # ANALYSIS 1
+    st.markdown("### **ANALYSIS 1**: performed to evaluate the fit of the data.")
+    st.markdown("#### **Analysis 1a**")
+    st.markdown("""**Analysis 1a**: A linear regression with Objective level of Control as an independent variable and median 
+                reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
+                rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
+                
+    
+    # Prepare data
+    #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
+    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby(["control_level"]).median().reset_index()
+    X = df_temp[["control_level"]].to_numpy()
+    y = df_temp["response"].to_numpy()
+    
+    
+    # Add a constant (for the intercept term)
+    X = sm.add_constant(X)
+    # Fit the model
+    model = sm.OLS(y, X).fit()
+    # Print the summary
+    print(model.summary())
+    st.text(model.summary())
+    
+    st.markdown("#### **Analysis 1b**")
+    st.markdown("""**Analysis 1b**: A linear mixed model (LMM) with Objective level of Control treated as a covariate, and Participant 
+                treated as a random effect. The dependent variable will be the reported level of sense of agency (DV1).. """)
+                
+    
+    # Prepare data
+    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]] #.groupby(["control_level"]).median().reset_index()
+    # Fit the linear mixed model
+    model = mixedlm("response ~ control_level", df, groups="SubNum")
+    result = model.fit() 
+    # Print the results
+    st.text(result.summary())
+    
+    # ANALYSIS 2
+    st.markdown("### **ANALYSIS 2**: performed to investigate the deviations of sense of agency from the objective level of control.")
+    st.markdown("#### **Analysis 2a**")
+    st.markdown("""**Analysis 2a**: A one-way ANOVA with factor Objective level of Control (11 levels: from 0% to 100%, every 10%) 
+                followed by a series of t-tests comparing median response deviation for each participant from zero. The dependent 
+                variable will be participant’s median response deviation, rather than mean response deviation in order to reduce the 
+                influence of potential outliers caused by loss of attention during the task.""")
+                
+    # Prepare data
+    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).median().reset_index()
+    # STATSMODELS
+    # Fit the model
+    anova = AnovaRM(df_temp, depvar='difference', subject='SubNum', within=['control_level']).fit()
+    st.markdown("STATSMODELS RESULTS:")
+    st.text(anova)
+    # PINGOUIN
+    # Perform repeated measures ANOVA
+    anova_results = rm_anova(data=df_temp, dv='difference', within='control_level', subject='SubNum')
+    st.markdown("PINGUOIN RESULTS:")
+    st.table(anova_results)
+    
+    
+    
+    
+    
+    
+    
+        
+    ### ANALYSIS 2b
+    st.markdown("#### **Analysis 2b**")
+    st.markdown("""**Analysis 2b**: A linear mixed model (LMM) with Objective level of Control (11 levels: from 0% to 100%, every 10%) 
+                treated as a factor, and Participant treated as a random effect on DV2 (response deviation). """)
+                
+    # Prepare data
+    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]] #.groupby(["control_level"]).median().reset_index()
+    # Fit the linear mixed model
+    model = mixedlm("difference ~ control_level", df, groups="SubNum")
+    result = model.fit() 
+    # Print the results
+    st.text(result.summary())
 
 #%% BUTTON == 'Reliability of data from Block 1'
 
@@ -762,6 +938,7 @@ if button_radio == 'Reliability of data from Block 1':
     sns.histplot(data_sub_corrs['Corr_B1'])
     plt.xlim([-1.05,1.05])
     plt.xlabel('Strength of correlation')
+    plt.title("Correlation between block 1 and the remaining blocks")
     plt.plot([-1,-1], [0,5], color="red")
     plt.plot([0,0], [0,3], color="red")
     plt.plot([1,1], [0,5], color="red")
@@ -792,6 +969,26 @@ if button_radio == 'Reliability of data from Block 1':
     st.pyplot(fig2b)
     st.markdown(f"***Figure 2B.*** *The distribution of average correlations between a single block and the remaining blocks. Data from Experiment {selected_exp_num}* ")
     
+    
+    ### INTRA-CLASS CORRELATION
+    
+    # icc_result = pg.intraclass_corr(data=df, 
+    #                             targets='SubNum', 
+    #                             raters='block', 
+    #                             ratings='response')
+    
+    # Do it for each level of control
+    for con_lev in range(0,11):
+        icc_result = pg.intraclass_corr(data=df.loc[df['control_level'] == con_lev*10,:], 
+                                    targets='SubNum', 
+                                    raters='block',
+                                    ratings='response')
+        st.markdown(f"### ICC for control level = {con_lev*10}")
+        st.table(icc_result)
+    
+    #st.markdown("### ICC")
+    #st.markdown(f"The ICC is:")
+    #st.table(icc_result)
     
 #%% BUTTON == 'Correlations within levels of control'
 
@@ -1342,7 +1539,7 @@ if button_radio == 'Explore data from each participant':
     fig1, ax1 = plt.subplots()
     fig1.set_size_inches(10, 9)
     sns.lineplot(data=data_all.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="blue", alpha=0.5, legend=False)
-    sns.lineplot(data=data_B1.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="red", alpha=1, legend=False)
+    #sns.lineplot(data=data_B1.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="red", alpha=1, legend=False)
     plt.xlim([0,100])
     plt.ylim([0,100])
     plt.xlabel("Objective level of control")
@@ -1352,7 +1549,7 @@ if button_radio == 'Explore data from each participant':
     if df.loc[df["SubNum"]==sub_num,"Include"].iloc[0] == 0:
         plt.text(5, 96, "PARTICIPANT EXCLUDED", fontsize=16, color="red")
     num_value = sub_metrics['SumDev'].iloc[0]
-    plt.text(5, 92, f"Participant number: {sub_num}", fontsize=16, color="black")
+    plt.text(5, 92, f"Participant number: {sub_num}, {selected_selectbox}", fontsize=16, color="black")
     num_value = sub_metrics['Bias'].iloc[0]
     plt.text(5, 88, f"BIAS: {num_value:.02}", fontsize=12, color="black")
     num_value = sub_metrics['Accuracy'].iloc[0]
