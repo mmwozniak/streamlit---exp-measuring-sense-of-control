@@ -22,6 +22,7 @@ import scipy as sp               #
 #import statsmodels as sm         # 
 #import statsmodels.formula.api as smf
 import statsmodels.api as sm
+from statsmodels.regression.mixed_linear_model import VCSpec
 from statsmodels.formula.api import mixedlm
 from statsmodels.stats.anova import AnovaRM
 from pingouin import rm_anova
@@ -86,10 +87,11 @@ button_radio = st.sidebar.radio("Choose what you want to see:",
                                  "Comparison of experiments", 
                                  "Results of specific experiments",
                                  "Preregistered analyses",
+                                 "Variance decomposition analysis",
                                  "Reliability of data from Block 1",
                                  "Cluster analysis",
                                  "Metrics of individual differences",
-                                 # "Correlations within levels of control",
+                                 "Correlations within levels of control", ###
                                  "Explore data from each participant"])
 
 # Select box: experiment
@@ -441,6 +443,32 @@ if button_radio == 'Comparison of experiments':
     # Figure caption
     st.markdown("***Figure 3.*** *Standard deviation across levels of control in all experiments.*")
     
+    
+    ##########################
+    # PLOT FIGURE 4: HISTOGRAM OF ALL RESPONSES
+    ########################## 
+    
+    # # Multiplot of histograms
+    # fig, axs = plt.subplots(2, 1, sharey=True, figsize=(10, 10))
+    
+    # a = df_long_resp.loc[df_long_resp["Experiment"]==1, "Rating of SoA"]
+    # b = df_long_resp.loc[df_long_resp["Experiment"]==2, "Rating of SoA"]
+    # c = df_long_resp.loc[df_long_resp["Experiment"]==3, "Rating of SoA"]
+    # d = df_long_resp.loc[df_long_resp["Experiment"]==4, "Rating of SoA"]
+    # e = df_long_resp.loc[df_long_resp["Experiment"]==5, "Rating of SoA"]
+    
+    # for i, col in enumerate([a, b]):
+    #   ax = axs.flat[i]
+    #   #ax.scatter(df['control_level'], df[[_c]])
+    #   #ax.hist(df[[col]], bins=20, color='grey')
+    #   ax.hist(col, bins=100, color='grey')
+    #   #mean_value = df[col].mean()
+    #   #ax.axvline(mean_value, color='red', linestyle='dashed', linewidth=1.5)
+    #   #ax.set_title(col)
+    # st.pyplot(fig)
+    # # Figure caption
+    # st.markdown("***Figure 4.*** *Histogram of responses in Experiment 1 and 2.*")
+    
     ##################
     # STATS: COMPARE EXPERIMENTS
     
@@ -479,6 +507,16 @@ if button_radio == 'Comparison of experiments':
     #st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
     
+    # Perform the ANOVA
+    st.markdown(f"##### Without Exp 4: 4x11 repeated measures ANOVA - means")
+    # Prepare data
+    df_temp2 = df_temp.loc[df_temp["Experiment"] != 4,:]
+    # PINGOUIN
+    # Perform repeated measures ANOVA
+    anova_results = rm_anova(data=df_temp2, dv='difference', within=['control_level', 'Experiment'], subject='SubNum')
+    #st.markdown("PINGUOIN RESULTS:")
+    st.table(anova_results)
+    
     
     # Perform the ANOVA on STDs
     st.markdown(f"#### Big analysis: 5x11 repeated measures ANOVA - STDs")
@@ -490,6 +528,18 @@ if button_radio == 'Comparison of experiments':
     #st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
 
+    # Perform the ANOVA
+    st.markdown(f"##### Without Exp 4: 4x11 repeated measures ANOVA - STDs")
+    # Prepare data
+    df_temp2 = df_temp.loc[df_temp["Experiment"] != 4,:]
+    # PINGOUIN
+    # Perform repeated measures ANOVA
+    anova_results = rm_anova(data=df_temp2, dv='difference', within=['control_level', 'Experiment'], subject='SubNum')
+    #st.markdown("PINGUOIN RESULTS:")
+    st.table(anova_results)
+    
+    
+    
     
 #%% BUTTON == 'Results of specific experiments'
 
@@ -680,6 +730,25 @@ if button_radio == 'Results of specific experiments':
         st.pyplot(fig3)
         st.markdown(f"***Figure 3.*** *Mean confidence in reported sense of control for each objective level of control. Data from Experiment {selected_exp_num}*. ")
         
+        ###################
+        # STATISTICS: STD
+        
+        # Perform the ANOVA on STDs
+        st.markdown(f"#### One-way repeated-measures ANOVA on confidence")
+        # Prepare data
+        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "Confidence"]].groupby(["SubNum","control_level"]).mean().reset_index()
+        # PINGOUIN
+        # Perform repeated measures ANOVA
+        anova_results = rm_anova(data=df_temp, dv='Confidence', within='control_level', subject='SubNum')
+        #st.markdown("PINGUOIN RESULTS:")
+        st.table(anova_results)
+        
+        # Averages
+        df_plot = df.loc[df["Include"] == 1,["SubNum", "control_level", "Confidence"]].groupby(["control_level"]).mean().reset_index()
+        st.markdown(f"##### Experiment {selected_exp_num}: Average confidence at each control level")
+        st.table(df_plot.loc[:,['control_level', 'Confidence']].style.format("{:.3f}"))
+        
+        
     if selected_exp_num == "1C":
         
         st.markdown('### Comparison (within-subject) between Left-Right and Right-Left scales')
@@ -704,8 +773,27 @@ if button_radio == 'Results of specific experiments':
         
         # Tell streamlit to plot it
         st.pyplot(fig3)
-        st.markdown(f"***Figure 3.*** *Comparison between LR and RL scales. Data plots difference between reported and objective level of control for each objective level of control. Data from Experiment {selected_exp_num}*. ")
+        st.markdown(f"""***Figure 3.*** *Comparison between LR and RL scales. Data plots 
+                    difference between reported and objective level of control for each objective level of control. 
+                    Data from Experiment {selected_exp_num}*. """)
         
+        
+        
+        
+    # ############################
+    # DISTRIBUTION OF THE RESPONSES
+    
+    st.markdown("## Histogram of all individual responses")
+    
+    fig4, ax4 = plt.subplots()
+    fig4.set_size_inches(12, 10)
+
+    sns.histplot(data=df, x="response", bins=101)
+    st.pyplot(fig4)
+    
+    st.markdown(f"""***Figure 4.*** *Histogram of all individual responses. It shows whether participants showed 
+                the tendency to select more often specific responses. Data from Experiment {selected_exp_num}*. """)
+    
         
 #%% BUTTON == 'Preregistered analyses'
 
@@ -717,16 +805,17 @@ if button_radio == 'Preregistered analyses':
                 ''')
             
     # ANALYSIS 1
+    # --------------------------------------
     st.markdown("### **ANALYSIS 1**: performed to evaluate the fit of the data.")
     st.markdown("#### **Analysis 1a**")
-    st.markdown("""**Analysis 1a**: A linear regression with Objective level of Control as an independent variable and median 
+    st.markdown("""**Analysis 1a (median)**: A linear regression with Objective level of Control as an independent variable and median 
                 reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
                 rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
                 
     
     # Prepare data
     #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
-    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby(["control_level"]).median().reset_index()
+    df_temp = df.loc[:,["SubNum", "control_level", "response"]].groupby(["SubNum", "control_level"]).median().reset_index()
     X = df_temp[["control_level"]].to_numpy()
     y = df_temp["response"].to_numpy()
     
@@ -739,18 +828,82 @@ if button_radio == 'Preregistered analyses':
     print(model.summary())
     st.text(model.summary())
     
+    # --------------------------------------
+    st.markdown("""**Analysis 1a (mean)**: A linear regression with Objective level of Control as an independent variable and median 
+                reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
+                rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
+                
+    
+    # Prepare data
+    #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
+    df_temp = df.loc[:,["SubNum", "control_level", "response"]].groupby(["SubNum", "control_level"]).mean().reset_index()
+    X = df_temp[["control_level"]].to_numpy()
+    y = df_temp["response"].to_numpy()
+    
+    
+    # Add a constant (for the intercept term)
+    X = sm.add_constant(X)
+    # Fit the model
+    model = sm.OLS(y, X).fit()
+    # Print the summary
+    print(model.summary())
+    st.text(model.summary())
+    
+    
+    
+    # --------------------------------------
+    st.markdown("""**Analysis 1a (mean from Block1)**: A linear regression with Objective level of Control as an independent variable and median 
+                reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
+                rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
+                
+    
+    # Prepare data
+    #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
+    df_temp = df.loc[df["block"] == 1,["SubNum", "control_level", "response"]].groupby(["SubNum", "control_level"]).mean().reset_index()
+    X = df_temp[["control_level"]].to_numpy()
+    y = df_temp["response"].to_numpy()
+    
+    
+    # Add a constant (for the intercept term)
+    X = sm.add_constant(X)
+    # Fit the model
+    model = sm.OLS(y, X).fit()
+    # Print the summary
+    print(model.summary())
+    st.text(model.summary())
+    
+    
+    # =============================
+    # ANALYSIS 1B
+    
+    # --------------------------------------
     st.markdown("#### **Analysis 1b**")
     st.markdown("""**Analysis 1b**: A linear mixed model (LMM) with Objective level of Control treated as a covariate, and Participant 
                 treated as a random effect. The dependent variable will be the reported level of sense of agency (DV1).. """)
                 
     
     # Prepare data
-    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]] #.groupby(["control_level"]).median().reset_index()
+    df_temp = df.loc[:,["SubNum", "control_level", "response"]] #.groupby(["control_level"]).median().reset_index()
     # Fit the linear mixed model
     model = mixedlm("response ~ control_level", df, groups="SubNum")
     result = model.fit() 
+    
+    
+    # Extract variance components    
+    #variance_components = result.cov_re.diagonal()  # Random effect variances
+    residual_variance = result.scale                # Residual variance
+
     # Print the results
     st.text(result.summary())
+    #st.text(f"Variance components: {variance_components}")
+    st.text(f"Residual variance: {residual_variance}")
+    
+    
+    
+    # =============================
+    # ANALYSIS 2
+    # =============================
+    
     
     # ANALYSIS 2
     st.markdown("### **ANALYSIS 2**: performed to investigate the deviations of sense of agency from the objective level of control.")
@@ -761,7 +914,7 @@ if button_radio == 'Preregistered analyses':
                 influence of potential outliers caused by loss of attention during the task.""")
                 
     # Prepare data
-    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).median().reset_index()
+    df_temp = df.loc[:,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).median().reset_index()
     # STATSMODELS
     # Fit the model
     anova = AnovaRM(df_temp, depvar='difference', subject='SubNum', within=['control_level']).fit()
@@ -786,13 +939,198 @@ if button_radio == 'Preregistered analyses':
                 treated as a factor, and Participant treated as a random effect on DV2 (response deviation). """)
                 
     # Prepare data
-    df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]] #.groupby(["control_level"]).median().reset_index()
+    df_temp = df.loc[:,["SubNum", "control_level", "difference"]] #.groupby(["control_level"]).median().reset_index()
     # Fit the linear mixed model
     model = mixedlm("difference ~ control_level", df, groups="SubNum")
     result = model.fit() 
     # Print the results
     st.text(result.summary())
 
+
+
+
+#%% BUTTON == 'Variance decomposition analysis'
+
+if button_radio == 'Variance decomposition analysis':
+    
+    st.title(f"Selected experiment: {selected_selectbox}")
+    st.title("Variance decomposition analysis")
+    st.markdown('''This section presents the results of Variance Decomposition Analysis. As the name implies, it allows to 
+                decompose the variance of participants' responses into different sources: variance reflected by different 
+                expermental conditions (viariability reflecting different levels of control), variance reflecting differences 
+                between different participants  (between-subject variability) and the unexplained variance (error variability). 
+                Importantly, here we separate two types of variability reflecting the experimental conditions: variability reflecting 
+                the objective level of control (objective LoC), and variability reflecting the group-level bias when evaluating different levels of 
+                control (bias in LoC).
+                ''')
+    st.markdown('''In the first step we calculate the total variability of participants' responses in the task:
+                ''')
+    
+    
+    # ===================================================
+    # Prepare data
+    selected_exp_num = selected_selectbox[11:]
+    url_link = f'DATA_MeasuringSoA_long_Exp{selected_exp_num}.csv'
+    df = pd.read_csv(url_link)
+    # Adjust the control_level to be on the 0-100 scale 
+    df['control_level'] = df['control_level']*100
+    # Exclude participants that do not fulfill the inclusion critia
+    if selectbox_exclude_outliers == "Yes":
+        df = df[df['Include'] == 1]
+    
+    # Calculate variance of responses and deviations
+    total_variance_response = df["response"].var()
+    total_variance_difference = df["difference"].var()
+    var_explained_by_loc = total_variance_response - total_variance_difference
+    
+    st.markdown("#### **TOTAL VARIANCE OF RESPONSES**")
+    st.text(f"Total variance of responses: {total_variance_response:.3f}")
+    
+    st.markdown("""This value represents the total amount of variance in the data that has to be explained. 
+                One source of this variance is the fact that in different trials participants control the red ball over which 
+                they have objectively different level of control: 0%, 10%, up to 100%. Hence, one source of variability of responses 
+                reporting participants' sense of control comes from the fact that they had objctively different levels of control. 
+                This variability can be removed if we look at the variability not of participants' responses, but the variability of 
+                the differences between their responses and the objective level of control. In other words: at the variability of their 
+                deviations.
+                 """)
+    
+    st.markdown("#### **TOTAL VARIANCE OF DIFFERENCES/DEVIATIONS**")
+    st.text(f"Total variance of the deviations: {total_variance_difference:.3f}")
+    
+    st.markdown("""The variance of deviations is much lower than the variance of responses. This is because we removed 
+                the variance caused by the linear effect of the objective level of control. This variance accounted for the following 
+                percentage of total variance of participants' responses:
+                 """)
+    
+    #st.markdown("#### **VARIANCE EXPLAINED BY OBJECTIVE LEVEL OF CONTROL**")
+    st.text(f"Variance explained by the objective LoC: {100*var_explained_by_loc/total_variance_response:.2f}% ")
+    
+    # Multiplot of histograms
+    fig, axs = plt.subplots(1, 2, sharey=True, figsize=(10, 4))
+    
+    for i, col in enumerate(df[['response', "difference"]]):
+      ax = axs.flat[i]
+      #ax.scatter(df['control_level'], df[[_c]])
+      ax.hist(df[[col]], bins=20, color='grey')
+      mean_value = df[col].mean()
+      ax.axvline(mean_value, color='red', linestyle='dashed', linewidth=1.5)
+      ax.set_title(col)
+    st.pyplot(fig)
+    st.markdown(f"""***Figure 1.*** *Histograms of participants' responses (left) and deviations of responses from objective 
+                level of control (right). Responses show much higher variability (variance={total_variance_response:.2f}) 
+                than differences/deviations ({total_variance_difference:.2f}). Red line shows the mean.*
+                 """)
+                 
+    # # Multiplot with scatterplots
+    # cc1, cc2 = st.columns([1,1])
+    # with cc1:
+    #     st.scatter_chart(data=df, x="control_level", y="response", size=10) 
+    # with cc2:
+    #     st.scatter_chart(data=df, x="control_level", y="difference", size=10)
+    # st.markdown("""***Figure 2.*** *Scatter plots of participants' responses (left) and deviations of responses from objective 
+    #             level of control (right).*
+    #              """)
+           
+    
+    st.markdown("""The remaining variance is the variance that can be attributed to participants' biases in responses to 
+                different levels of the experimental conditions (level of control), their indivividual differences 
+                (between-subject variability) and the unexplained variance. These values can be estimated using the 
+                Linear Mixed Models approach. 
+                 """)
+    
+    st.markdown("""In the first step we evaluate a null model in which we do not model the effect of the experimental conditions. 
+                We perform this model on the deviations (between the reports and the objctive level of control).
+                """)
+    
+    # ------------------
+    st.markdown(" ### MODEL 0: Null model with random effect of participants")
+    # Prepare data
+    df_temp = df.loc[:,["SubNum", "difference", "response"]]
+    # Specifying the model
+    vc = {"Participant": "1 + C(SubNum)"}
+    model0 = sm.MixedLM.from_formula("difference ~ 1", groups="SubNum", vc_formula=vc, data=df_temp)
+    result0 = model0.fit()
+    # Print the results
+    st.text(result0.summary())
+    
+    # Comparison with total variance of deviations
+    st.markdown(f"""The LMM model estimated the variance that can be explained by differences between participants (the last 
+                row, "Participant Var": {result0.vcomp[0]:.2f}"), as well as the unexplained variance (here presented under 
+                the name of "scale": {result0.scale:.2f})
+                """)
+    var_in_model0 = result0.scale + result0.vcomp[0]
+    st.text(f"Total variance in Model 0: {var_in_model0:.2f}")
+    st.text(f"Total variance of deviations: {total_variance_difference:.2f}")
+    
+    st.markdown("""These values should be very similar, although they do not need to be exactly identical. A small difference 
+                might be due to numerical approximations used when performing calculations during estimation of the LMM model.
+                """)
+    
+    st.markdown(" ### MODEL 1: Model with fixed effect of level of control and random effect of participants")
+    st.markdown("""The null model doesn't take into consideration the effect of experimental condition. Therefore as the final 
+                step we stimated a model that includes level of control as a fixed effect and participants as a random effect:
+                """)
+    
+    # Prepare data
+    df_temp = df.loc[:,["SubNum", "control_level", "difference", "response"]]
+    # Specifying the model
+    vc = {"Participant": "1 + C(SubNum)"}
+    model1 = sm.MixedLM.from_formula("difference ~ 1 + C(control_level)", groups="SubNum", vc_formula=vc, data=df_temp)
+    result1 = model1.fit()
+    # Print the results
+    st.text(result1.summary())
+    
+    st.markdown("""As can be seen below the sum of within-participants variance and the unexplained variance is lower than 
+                in Model 0 - that's because we added the fixed factor of level of control, which explained part of the 
+                variance from the null model:
+                """)
+    
+    var_in_model1 = result1.scale + result1.vcomp[0]
+    var_dev_loc_bias = var_in_model0-var_in_model1
+    var_dev_loc_bias_perc = 100*(var_in_model0-var_in_model1)/var_in_model0
+    
+    st.text(f"Total variance in Model 1: {var_in_model1:.2f}")
+    st.text(f"Total variance in Model 0: {var_in_model0:.2f}")
+    # st.text(f"Variance of deviations explained by level of control: {var_dev_loc_bias:.2f} ({var_dev_loc_bias_perc:.2f}%)")
+    # st.text(f"Variance of deviations explained by the within-subject variability: {result1.vcomp[0]:.2f} ({100*result1.vcomp[0]/var_in_model0:.2f}%)")
+    # st.text(f"Unexplained variance of deviations: {result1.scale:.2f} ({100*result1.scale/var_in_model0:.2f}%)")
+    
+    st.markdown("#### **VARIANCE DECOMPOSITION OF DEVIATIONS**")
+    st.markdown("""By subtracting the total varience in Model 1 from total variance in Model 0 we obtained the amount 
+                of variance explained by the experimental condition, and we can provide a full decomposition for deviations 
+                from the objective level of control:
+                """)
+                
+    vda_difference = pd.DataFrame(data=[
+        ["Level of Control: bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_difference],
+        ["Within-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_difference],
+        ["Unexplained", result1.scale, 100*result1.scale/total_variance_difference],
+        ["TOTAL VARIANCE", total_variance_difference, 100]],
+        columns=["Variance explained by:", "Variance", "Percentage"])
+    st.table(vda_difference.style.format({"Variance":"{:.2f}", "Percentage":"{:.2f}"}))
+    
+    st.markdown("#### **FULL VARIANCE DECOMPOSITION OF RESPONSES**")
+    st.markdown("""Finally, all of these values can be used to provide the total variance decomposition of participants' responses:
+                """)
+                
+    # st.text(f"Variance of responses explained by objective level of control: {total_variance_response-total_variance_difference:.2f} ({100-100*total_variance_difference/total_variance_response:.2f}%)")
+    # st.text(f"Variance of responses explained by bias in level of control: {var_dev_loc_bias:.2f} ({100*var_dev_loc_bias/total_variance_response:.2f}%)")
+    # st.text(f"Variance of responses explained by the within-subject variability: {result1.vcomp[0]:.2f} ({100*result1.vcomp[0]/total_variance_response:.2f}%)")
+    # st.text(f"Unexplained variance of responses: {result1.scale:.2f} ({100*result1.scale/total_variance_response:.2f}%)")
+    
+    vda_response = pd.DataFrame(data=[
+        ["Level of Control: linear", total_variance_response-total_variance_difference, 100-100*total_variance_difference/total_variance_response],
+        ["Level of Control: bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_response],
+        ["Within-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_response],
+        ["Unexplained", result1.scale, 100*result1.scale/total_variance_response],
+        ["TOTAL VARIANCE", total_variance_response, 100]],
+        columns=["Variance explained by:", "Variance", "Percentage"])
+    st.table(vda_response.style.format({"Variance":"{:.2f}", "Percentage":"{:.2f}"}))
+    
+    
+    
+    
 #%% BUTTON == 'Reliability of data from Block 1'
 
 if button_radio == 'Reliability of data from Block 1':
