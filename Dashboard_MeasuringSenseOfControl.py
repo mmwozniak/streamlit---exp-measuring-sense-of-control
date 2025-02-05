@@ -955,7 +955,10 @@ if button_radio == 'Variance decomposition analysis':
     
     st.title(f"Selected experiment: {selected_selectbox}")
     st.title("Variance decomposition analysis")
-    st.markdown('''This section presents the results of Variance Decomposition Analysis. As the name implies, it allows to 
+    st.markdown('''This section presents the results of Variance Decomposition Analysis 
+                (see: [1](https://doi.org/10.1016/j.indmarman.2022.10.020), 
+                [2](https://www.statsmodels.org/dev/examples/notebooks/generated/variance_components.html)). 
+                As the name implies, it allows to 
                 decompose the variance of participants' responses into different sources: variance reflected by different 
                 expermental conditions (viariability reflecting different levels of control), variance reflecting differences 
                 between different participants  (between-subject variability) and the unexplained variance (error variability). 
@@ -1108,7 +1111,7 @@ if button_radio == 'Variance decomposition analysis':
         ["Unexplained", result1.scale, 100*result1.scale/total_variance_difference],
         ["TOTAL VARIANCE", total_variance_difference, 100]],
         columns=["Variance explained by:", "Variance", "Percentage"])
-    st.table(vda_difference.style.format({"Variance":"{:.2f}", "Percentage":"{:.2f}"}))
+    st.table(vda_difference.style.format({"Variance":"{:.1f}", "Percentage":"{:.1f}"}))
     
     st.markdown("#### **FULL VARIANCE DECOMPOSITION OF RESPONSES**")
     st.markdown("""Finally, all of these values can be used to provide the total variance decomposition of participants' responses:
@@ -1126,7 +1129,7 @@ if button_radio == 'Variance decomposition analysis':
         ["Unexplained", result1.scale, 100*result1.scale/total_variance_response],
         ["TOTAL VARIANCE", total_variance_response, 100]],
         columns=["Variance explained by:", "Variance", "Percentage"])
-    st.table(vda_response.style.format({"Variance":"{:.2f}", "Percentage":"{:.2f}"}))
+    st.table(vda_response.style.format({"Variance":"{:.1f}", "Percentage":"{:.1f}"}))
     
     
     
@@ -1215,13 +1218,13 @@ if button_radio == 'Reliability of data from Block 1':
     resp_other_mean = resp_other.groupby(['SubNum', 'control_level']).mean().reset_index()
     data_corr = pd.merge(resp_b1, resp_other_mean, how='inner', on=['SubNum','control_level'], suffixes=('_B1', '_Other'))
     # General correlation
-    results_general_corr = data_corr[['response_B1','response_Other']].corr().iloc[0,1]
+    results_general_corr = data_corr[['response_B1','response_Other']].corr("spearman").iloc[0,1]
     
     # Correlations within each participant
     sub_num_list = data_corr['SubNum'].unique()
     results_correlations_subnum = []
     for sub_num in sub_num_list:
-        res_corr = data_corr.loc[data_corr['SubNum'] == sub_num,['response_B1','response_Other']].corr() #[0,1]
+        res_corr = data_corr.loc[data_corr['SubNum'] == sub_num,['response_B1','response_Other']].corr("spearman") #[0,1]
         results_correlations_subnum = results_correlations_subnum + [[sub_num, res_corr.iloc[0,1]]]
     results_correlations_subnum = pd.DataFrame(results_correlations_subnum)
     results_correlations_subnum.columns = ["participant", "r_correlation"]
@@ -1242,17 +1245,68 @@ if button_radio == 'Reliability of data from Block 1':
         y = y.groupby(['SubNum', 'control_level']).mean().reset_index()
         xy = pd.merge(x, y, how='inner', on=['SubNum','control_level'], suffixes=('_B', '_Other') )
         # Calculate general correlations
-        gen_corr = xy.loc[:,['response_B','response_Other']].corr()
+        gen_corr = xy.loc[:,['response_B','response_Other']].corr("spearman")
         general_corr.append(gen_corr.iloc[0,1])
         # Calculate results for each participant
         for sub_num in sub_num_list:
-            sub_corr = xy.loc[xy['SubNum']==sub_num,['response_B','response_Other']].corr().iloc[0,1]
+            sub_corr = xy.loc[xy['SubNum']==sub_num,['response_B','response_Other']].corr("spearman").iloc[0,1]
             data_sub_corrs.loc[data_sub_corrs['SubNum']==sub_num, f'Corr_B{block_num}'] = sub_corr            
     # Calculate the average, i.e. Cronbach's alpha
     data_sub_corrs['cronbach_alpha'] = data_sub_corrs[['Corr_B1', 'Corr_B2', 'Corr_B3', 'Corr_B4', 'Corr_B5']].mean(axis=1)
     #data_sub_corrs[['Corr_B1', 'Corr_B2', 'Corr_B3', 'Corr_B4', 'Corr_B5']].mean(axis=0)
         
     
+    ####################################
+    ########## DIFFERENCES #############
+    
+    # Correlation between block 1 and the rest
+    block_num = 1
+    blocks_other = [2, 3, 4, 5]
+    # Subset data
+    data_1 = df.loc[(df['block']==block_num),:]
+    data_other = df.loc[(df['block'].isin(blocks_other)),:]
+    data_corr = []
+    resp_b1 = data_1.loc[:, ['SubNum','control_level','difference']] 
+    resp_other = data_other.loc[:, ['SubNum','control_level','difference']] 
+    resp_other_mean = resp_other.groupby(['SubNum', 'control_level']).mean().reset_index()
+    data_corr = pd.merge(resp_b1, resp_other_mean, how='inner', on=['SubNum','control_level'], suffixes=('_B1', '_Other'))
+    # General correlation
+    results_general_corr_diff = data_corr[['difference_B1','difference_Other']].corr("spearman").iloc[0,1]
+    
+    # Correlations within each participant
+    sub_num_list = data_corr['SubNum'].unique()
+    results_correlations_diff_subnum = []
+    for sub_num in sub_num_list:
+        res_corr = data_corr.loc[data_corr['SubNum'] == sub_num,['difference_B1','difference_Other']].corr("spearman") #[0,1]
+        results_correlations_diff_subnum = results_correlations_diff_subnum + [[sub_num, res_corr.iloc[0,1]]]
+    results_correlations_diff_subnum = pd.DataFrame(results_correlations_diff_subnum)
+    results_correlations_diff_subnum.columns = ["participant", "r_correlation"]
+    
+    # Average correlation for each participant
+    blocks_list = [1, 2, 3, 4, 5]
+    sub_num_list = data_corr['SubNum'].unique()
+    general_corr = []
+    sub_corr_list = []
+    data_sub_corrs_diff = pd.DataFrame(zip(sub_num_list, [9]*len(sub_num_list), [9]*len(sub_num_list), 
+                                      [9]*len(sub_num_list), [9]*len(sub_num_list), [9]*len(sub_num_list) ), 
+                                  columns=['SubNum', 'Corr_B1', 'Corr_B2', 'Corr_B3', 'Corr_B4', 'Corr_B5'])
+    for block_num in list(range(1,6)):
+        exclude = {block_num}
+        blocks_other = [num for num in blocks_list if num not in exclude]
+        x = df.loc[(df['block']==block_num),['SubNum','control_level','difference']]
+        y = df.loc[(df['block'].isin(blocks_other)),['SubNum','control_level','difference']]
+        y = y.groupby(['SubNum', 'control_level']).mean().reset_index()
+        xy = pd.merge(x, y, how='inner', on=['SubNum','control_level'], suffixes=('_B', '_Other') )
+        # Calculate general correlations
+        gen_corr = xy.loc[:,['difference_B','difference_Other']].corr("spearman")
+        general_corr.append(gen_corr.iloc[0,1])
+        # Calculate results for each participant
+        for sub_num in sub_num_list:
+            sub_corr = xy.loc[xy['SubNum']==sub_num,['difference_B','difference_Other']].corr().iloc[0,1]
+            data_sub_corrs_diff.loc[data_sub_corrs_diff['SubNum']==sub_num, f'Corr_B{block_num}'] = sub_corr            
+    # Calculate the average, i.e. Cronbach's alpha
+    data_sub_corrs_diff['cronbach_alpha'] = data_sub_corrs_diff[['Corr_B1', 'Corr_B2', 'Corr_B3', 'Corr_B4', 'Corr_B5']].mean(axis=1)
+        
     
     
     #####################
@@ -1260,20 +1314,21 @@ if button_radio == 'Reliability of data from Block 1':
     
     st.markdown("### Do responses that participants give in block 1 correlate with responses in the remaining blocks?")
     st.markdown(f"""For the majority of participants the ratings from block 1 are very strongly correlated with the average 
-                ratings from the remaining blocks. Figure 2 shows the distribution of these correlations. For most participants 
-                this correlation falls between 0.75 and 1. The average of these correlations is: **r = {results_general_corr:.03}**. 
+                ratings from the remaining blocks. Figure 2A shows the distribution of these correlations. For most participants 
+                this correlation falls between 0.75 and 1. The average of these correlations is: **r = {data_sub_corrs["Corr_B1"].mean():.03}**. 
                 The median is **r = {data_sub_corrs["Corr_B1"].median():.03}**. The range is between {data_sub_corrs["Corr_B1"].min():.03} and
                 {data_sub_corrs["Corr_B1"].max():.03}.
                 """)
+    wilcoxon_result = sp.stats.wilcoxon(data_sub_corrs["Corr_B1"])
+    st.markdown(f"""The results of the Wilcoxon's test against zero: W={wilcoxon_result[0]:.03}, p={wilcoxon_result[1]:.03}.
+                """)
                 
-    
-    
     #####################
-    # PLOT 2: Plot distribution of correlations within participants
+    # PLOT 2A: Plot distribution of correlations within participants
     
     fig2, ax2 = plt.subplots()
     fig2.set_size_inches(10, 5)
-    sns.histplot(data_sub_corrs['Corr_B1'])
+    sns.histplot(results_correlations_subnum['r_correlation'])
     plt.xlim([-1.05,1.05])
     plt.xlabel('Strength of correlation')
     plt.title("Correlation between block 1 and the remaining blocks")
@@ -1288,10 +1343,41 @@ if button_radio == 'Reliability of data from Block 1':
     #####################
     # PLOT 2B: Plot distribution of correlations within participants
     
+    st.markdown(f"""These correlations are smaller when performed only on deviations of SoC from LoC. Figure 2B shows the distribution 
+                of these correlations. The average of these correlations is: **r = {results_correlations_diff_subnum["r_correlation"].mean():.03}**
+                and the standard deviation: **r = {results_correlations_diff_subnum["r_correlation"].std():.03}**. 
+                The median is **r = {results_correlations_diff_subnum["r_correlation"].median():.03}**. The range is between 
+                **{results_correlations_diff_subnum["r_correlation"].min():.03} and
+                {results_correlations_diff_subnum["r_correlation"].max():.03}**.
+                """)
+    ttest_result = sp.stats.ttest_1samp(results_correlations_diff_subnum["r_correlation"], popmean=0)
+    st.markdown(f"""The results of the one-sample t-test against zero: t={ttest_result[0]:.03}, p={ttest_result[1]:.03}.
+                """)
+    
+    fig2, ax2 = plt.subplots()
+    fig2.set_size_inches(10, 5)
+    sns.histplot(results_correlations_diff_subnum['r_correlation'], bins=11)
+    plt.xlim([-1.05,1.05])
+    plt.xlabel('Strength of correlation')
+    plt.title("Correlation between block 1 and the remaining blocks")
+    plt.plot([-1,-1], [0,5], color="red")
+    plt.plot([0,0], [0,3], color="red")
+    plt.plot([1,1], [0,5], color="red")
+    
+    st.pyplot(fig2)
+    st.markdown(f"***Figure 2B.*** *The distribution of correlations between deviations in block 1 and the remaining blocks across participants. Data from Experiment {selected_exp_num}* ")
+    
+    
+    #####################
+    # PLOT 3A: Plot distribution of correlations of responses between blocks within participants
+    
     st.markdown(f"""The plot below shows the average correlation between each single block and the remaining blocks. 
                 The average of these correlations is: **r = {data_sub_corrs["cronbach_alpha"].mean():.03}**. 
                 The median is **r = {data_sub_corrs["cronbach_alpha"].median():.03}**. The range is 
                 between {data_sub_corrs["cronbach_alpha"].min():.03} and {data_sub_corrs["cronbach_alpha"].max():.03}.
+                """)
+    wilcoxon_result = sp.stats.wilcoxon(data_sub_corrs["cronbach_alpha"])
+    st.markdown(f"""The results of the Wilcoxon's test against zero: W={wilcoxon_result[0]:.03}, p={wilcoxon_result[1]:.03}.
                 """)
                 
     fig2b, ax2b = plt.subplots()
@@ -1305,7 +1391,34 @@ if button_radio == 'Reliability of data from Block 1':
     plt.plot([1,1], [0,5], color="red")
     
     st.pyplot(fig2b)
-    st.markdown(f"***Figure 2B.*** *The distribution of average correlations between a single block and the remaining blocks. Data from Experiment {selected_exp_num}* ")
+    st.markdown(f"***Figure 3A.*** *The distribution of average correlations between a single block and the remaining blocks. Data from Experiment {selected_exp_num}* ")
+    
+    
+    #####################
+    # PLOT 3B: Plot distribution of correlations of deviations between blocks within participants
+    
+    st.markdown(f"""The plot below shows the average correlation between each single block and the remaining blocks. 
+                The average of these correlations is: **r = {data_sub_corrs_diff["cronbach_alpha"].mean():.03}** and the 
+                standard deviation: **r = {data_sub_corrs_diff["cronbach_alpha"].std():.03}**. 
+                The median is **r = {data_sub_corrs_diff["cronbach_alpha"].median():.03}**. The range is 
+                between **{data_sub_corrs_diff["cronbach_alpha"].min():.03} and {data_sub_corrs_diff["cronbach_alpha"].max():.03}**.
+                """)
+    ttest_result = sp.stats.ttest_1samp(data_sub_corrs_diff["cronbach_alpha"], popmean=0)
+    st.markdown(f"""The results of the one-sample t-test against zero: t={ttest_result[0]:.03}, p={ttest_result[1]:.03}.
+                """)
+                
+    fig2b, ax2b = plt.subplots()
+    fig2b.set_size_inches(10, 5)
+    sns.histplot(data_sub_corrs_diff['cronbach_alpha'], bins=11)
+    plt.xlim([-1.05,1.05])
+    plt.title("Average correlation with the remaining blocks")
+    plt.xlabel('Average correlation')
+    plt.plot([-1,-1], [0,5], color="red")
+    plt.plot([0,0], [0,3], color="red")
+    plt.plot([1,1], [0,5], color="red")
+    
+    st.pyplot(fig2b)
+    st.markdown(f"***Figure 3B.*** *The distribution of average correlations between a single block and the remaining blocks. Data from Experiment {selected_exp_num}* ")
     
     
     ### INTRA-CLASS CORRELATION
@@ -1315,14 +1428,14 @@ if button_radio == 'Reliability of data from Block 1':
     #                             raters='block', 
     #                             ratings='response')
     
-    # Do it for each level of control
-    for con_lev in range(0,11):
-        icc_result = pg.intraclass_corr(data=df.loc[df['control_level'] == con_lev*10,:], 
-                                    targets='SubNum', 
-                                    raters='block',
-                                    ratings='response')
-        st.markdown(f"### ICC for control level = {con_lev*10}")
-        st.table(icc_result)
+    # # Do it for each level of control
+    # for con_lev in range(0,11):
+    #     icc_result = pg.intraclass_corr(data=df.loc[df['control_level'] == con_lev*10,:], 
+    #                                 targets='SubNum', 
+    #                                 raters='block',
+    #                                 ratings='response')
+    #     st.markdown(f"### ICC for control level = {con_lev*10}")
+    #     st.table(icc_result)
     
     #st.markdown("### ICC")
     #st.markdown(f"The ICC is:")
@@ -1856,6 +1969,30 @@ if button_radio == 'Explore data from each participant':
     results_correlations_subnum = pd.DataFrame(results_correlations_subnum)
     results_correlations_subnum.columns = ["participant", "r_correlation"]
     
+    ########## DIFFERENCES #############
+    # Correlation between block 1 and the rest
+    block_num = 1
+    blocks_other = [2, 3, 4, 5]
+    # Subset data
+    data_1 = df.loc[(df['block']==block_num),:]
+    data_other = df.loc[(df['block'].isin(blocks_other)),:]
+    data_corr = []
+    resp_b1 = data_1.loc[:, ['SubNum','control_level','difference']] 
+    resp_other = data_other.loc[:, ['SubNum','control_level','difference']] 
+    resp_other_mean = resp_other.groupby(['SubNum', 'control_level']).mean().reset_index()
+    data_corr = pd.merge(resp_b1, resp_other_mean, how='inner', on=['SubNum','control_level'], suffixes=('_B1', '_Other'))
+    # General correlation
+    results_general_corr = data_corr[['difference_B1','difference_Other']].corr().iloc[0,1]
+    
+    # Correlations within each participant
+    sub_num_list = data_corr['SubNum'].unique()
+    results_correlations_diff_subnum = []
+    for sub_num in sub_num_list:
+        res_corr = data_corr.loc[data_corr['SubNum'] == sub_num,['difference_B1','difference_Other']].corr() #[0,1]
+        results_correlations_diff_subnum = results_correlations_diff_subnum + [[sub_num, res_corr.iloc[0,1]]]
+    results_correlations_diff_subnum = pd.DataFrame(results_correlations_diff_subnum)
+    results_correlations_diff_subnum.columns = ["participant", "r_correlation"]
+    
 
     ############################
     # PLOT 1: DATA FROM EACH INDIVIDUAL PARTICIPANT
@@ -1877,7 +2014,7 @@ if button_radio == 'Explore data from each participant':
     fig1, ax1 = plt.subplots()
     fig1.set_size_inches(10, 9)
     sns.lineplot(data=data_all.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="blue", alpha=0.5, legend=False)
-    #sns.lineplot(data=data_B1.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="red", alpha=1, legend=False)
+    sns.lineplot(data=data_B1.loc[data_all['SubNum'] == sub_num,:], x='control_level', y='response', color="red", alpha=1, legend=False)
     plt.xlim([0,100])
     plt.ylim([0,100])
     plt.xlabel("Objective level of control")
@@ -1896,14 +2033,27 @@ if button_radio == 'Explore data from each participant':
     plt.text(5, 82, f"RANDOMNESS: {num_value:.02}", fontsize=12, color="black")
     num_value = results_correlations_subnum.loc[results_correlations_subnum["participant"]==sub_num,'r_correlation'].iloc[0]
     plt.text(5, 78, f"Block1-Rest correlation: {num_value:.02}", fontsize=12, color="black")
+    
+    df_resp = df.loc[df['SubNum']==sub_num,['SubNum', 'response']]
+    # Tell streamlit to plot it
+    sns.histplot(df_resp['response'], bins=25 ,alpha=0.5)
+    
 
     # Tell streamlit to plot it
     st.pyplot(fig1)
     st.markdown(f"***Figure 1.*** *Average responses (blue line) and responses from Block 1 (red line) for each objective level of control. Data from Experiment {selected_exp_num}*. ")
     
     
+    ###################################
+    # Distributon of responses
+    ###################################
 
-
+    # df_resp = df.loc[df['SubNum']==sub_num,['SubNum', 'response']]
+    # # Tell streamlit to plot it
+    # sns.histplot(df_resp['response'], bins=50 ,alpha=0.5)
+    # st.pyplot(fig1)
+    # st.markdown(f"***Figure 1.*** *Average responses (blue line) and responses from Block 1 (red line) for each objective level of control. Data from Experiment {selected_exp_num}*. ")
+    
 
 #%% TEST
 
