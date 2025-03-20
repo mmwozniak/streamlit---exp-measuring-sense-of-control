@@ -27,6 +27,8 @@ from statsmodels.formula.api import mixedlm
 from statsmodels.stats.anova import AnovaRM
 from pingouin import rm_anova
 import pingouin  as pg
+from scipy.stats import f_oneway
+from scipy.stats import tukey_hsd
 
 # CLUSTER ANALYSIS
 from sklearn.cluster import KMeans
@@ -91,7 +93,7 @@ button_radio = st.sidebar.radio("Choose what you want to see:",
                                  "Reliability of data from Block 1",
                                  "Cluster analysis",
                                  "Metrics of individual differences",
-                                 "Correlations within levels of control", ###
+                                 #"Correlations within levels of control", ###
                                  "Explore data from each participant"])
 
 # Select box: experiment
@@ -198,17 +200,20 @@ df_avg_metrics = df_long_metrics.groupby("SubNum").mean().reset_index().drop("bl
 if button_radio == 'Introduction':
     st.title('Introduction')
     st.markdown('This is a dashboard allowing you to explore the results of our [study on meauring sense of control with explicit reports](https://osf.io/preprints/psyarxiv/ta9rq). In this study we compared several different scales measuring sense of control (sense of agency).')
-    st.image(image="img/tense cats.jpg", width=250)
-    st.markdown("***Figure 1.*** *This cat has lost sense of control* ")
+    st.image(image="img/pic_003.jpeg", width=450)
+    st.markdown("***Figure 1.*** *How to measure sense of control over things that we operate?* ")
     
     st.markdown('### What is sense of control and why it matters')
     st.markdown(''' 
                 According to the standard definition Sense of Control or Sense of Agency (we will use these terms interchangeably here) 
                 refers to the **feeling of control** over actions and their consequences (Moore, 2016). 
-                As such, it refers to the conscious experience (feeling) that I am in control. 
+                As such, it refers to the conscious experience (a feeling) that I am in control. 
                 
-                Sense of Control is critically important in many practical applications, 
-                especially including robotics, automation and artificial intelligence. 
+                Sense of Control is critically important in many practical applications. It becomes an even more important issue 
+                today when new technological developments allow us to delegate many of our tasks to machines, including robots and 
+                artificial intelligence. How does controlling a robot that can act autonomously affect our sense of being in control? 
+                And how being in control influences other things, such us our satisfaction with the robot, but also effort and willingness 
+                to use it? These questions can be answered only if we possess a good measure of sense of control.
                 
                 ''')
     # st.markdown(''' 
@@ -232,21 +237,29 @@ if button_radio == 'Introduction':
     #             ''')
     st.markdown('### How to measure sense of control')
     st.markdown('Sense of Control can be measured either using explicit methods or implicit methods:')
-    st.markdown('- **Explicit measures** consist of scales and questions. Participants evaluate their experienced level of control by indicating a point or option on a scale, or by describing their experience verbally')
-    st.markdown("""- **Implicit measures** do not involve asking people directly about their experienced level of control, but instead use different measurements that are believed to be directly related to the experience of sense of agency. The most popular ones are: the magnitude of intentional binding and the 
+    st.markdown("""- **Explicit measures** consist of direct questions and response scales. Participants report their experienced level of control 
+                by indicating a point or option on a scale, or by describing their experience verbally or in writing""")
+    st.markdown("""- **Implicit measures** do not involve asking people directly about their experienced level of control, but 
+                instead use different measurements that are believed to be directly related to the experience of sense of agency. 
+                The most popular ones are: the magnitude of intentional binding and the 
                 magnitude of sensory attenuation.""")
-    st.markdown("""While explicit measures allow to directly assess one's level of experienced control, they have been criticized on several grounds. The most important criticisms are: **(A)** Explicit measures are unreliable and **(B)** Explicit measures are easily influenced by external factor and types of scales.
-                On the other hand implicit measures are much more troublesome to use and have been recently criticized as having even more reliability problems (Corneille, Gawronski, 2024).
+    st.markdown("""While explicit measures allow to directly assess one's level of experienced control, they have been criticized on several grounds. 
+                The most important criticisms are: **(A)** Explicit measures are unreliable and **(B)** Explicit measures are easily influenced by external 
+                factors and lead to different results depending on what type of scale one uses. This led many researcher to prefer to use implicit measures. 
+                However, implicit measures are much more troublesome to use in practice and have been recently criticized as having much more severe problems 
+                with reliability than explicit measures (Corneille, Gawronski, 2024). 
                 """)
     st.markdown('### The goal of this study')
-    st.markdown('''The aim of this research was to assess the reliability of explicit measures of SoA. Specifically, we investigated the 
-                influence of the choice of the response scale on participants' reports of SoA.
+    st.markdown('''Research study on sense of control is dominated by research using implicit measures. However, recent criticism of implicit measures of 
+                sense of control has motivated the need to re-evaluate reliability of explicit reports.
+                Therefore, the aim of this research was to assess the reliability of explicit measures of SoA. Specifically, we investigated to what extent 
+                choice of a specific response scale affects the observed pattern of results.
                 ''')
     st.markdown('### References')
     st.markdown(''' 
                 Corneille, O., Gawronski, B. (2024). **Self-reports are better measurement instruments than implicit measures**. *Nature Reviews Psychology*. [https://doi.org/10.1038/s44159-024-00376-z](https://doi.org/10.1038/s44159-024-00376-z). 
                 
-                Haggard, P. (1985). **Sense of agency in the human brain**. *Nature Reviews Neuroscience* 18 (4), 196-207. [https://doi.org/10.1038/nrn.2017.14](https://doi.org/10.1038/nrn.2017.14)  
+                Haggard, P. (2017). **Sense of agency in the human brain**. *Nature Reviews Neuroscience* 18 (4), 196-207. [https://doi.org/10.1038/nrn.2017.14](https://doi.org/10.1038/nrn.2017.14)  
                 
                 Moore, J. W. (2016). **What is the sense of agency and why does it matter?**. *Frontiers in psychology, 7*, 1272. [https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2016.01272/full](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2016.01272/full)
                 ''')
@@ -444,61 +457,51 @@ if button_radio == 'Comparison of experiments':
     st.markdown("***Figure 3.*** *Standard deviation across levels of control in all experiments.*")
     
     
-    ##########################
-    # PLOT FIGURE 4: HISTOGRAM OF ALL RESPONSES
-    ########################## 
     
-    # # Multiplot of histograms
-    # fig, axs = plt.subplots(2, 1, sharey=True, figsize=(10, 10))
+    #############################
+    # ADDITIONAL ANALYSIS: STD at 50%
+    #############################
     
-    # a = df_long_resp.loc[df_long_resp["Experiment"]==1, "Rating of SoA"]
-    # b = df_long_resp.loc[df_long_resp["Experiment"]==2, "Rating of SoA"]
-    # c = df_long_resp.loc[df_long_resp["Experiment"]==3, "Rating of SoA"]
-    # d = df_long_resp.loc[df_long_resp["Experiment"]==4, "Rating of SoA"]
-    # e = df_long_resp.loc[df_long_resp["Experiment"]==5, "Rating of SoA"]
+    # # Additional analysis checking if STDs differ between experiments 1,2,3, and 5 for 50% level of control
+    # a = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==1), "Response STD"]
+    # b = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==2), "Response STD"]
+    # c = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==3), "Response STD"]
+    # d = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==4), "Response STD"]
+    # e = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==5), "Response STD"]
+    # F, p = f_oneway(a, b, c, e)
+    # print(f"The results of the 1-way between subjects ANOVA for factor Experiment on Control Level = 5: F={F:03f}, p=={p:03f}")
+    # st.markdown(f"The results of the 1-way between-subjects ANOVA on STDs for factor Experiment on Control Level = 5: F={F:.03f}, p={p:.03f}")
     
-    # for i, col in enumerate([a, b]):
-    #   ax = axs.flat[i]
-    #   #ax.scatter(df['control_level'], df[[_c]])
-    #   #ax.hist(df[[col]], bins=20, color='grey')
-    #   ax.hist(col, bins=100, color='grey')
-    #   #mean_value = df[col].mean()
-    #   #ax.axvline(mean_value, color='red', linestyle='dashed', linewidth=1.5)
-    #   #ax.set_title(col)
-    # st.pyplot(fig)
-    # # Figure caption
-    # st.markdown("***Figure 4.*** *Histogram of responses in Experiment 1 and 2.*")
+    # # Post-hoc tests:
+    # res = tukey_hsd(a, b, c, e)
+    # print(res)
+    # st.text(res)
     
-    ##################
-    # STATS: COMPARE EXPERIMENTS
     
-    st.markdown("### Results of the statistical tests")
     
-    from scipy.stats import f_oneway
-    from scipy.stats import tukey_hsd
-    a = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==1), "Response STD"]
-    b = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==2), "Response STD"]
-    c = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==3), "Response STD"]
-    d = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==4), "Response STD"]
-    e = df_long_resp_std.loc[(df_long_resp_std["Control"]==50) & (df_long_resp_std["Experiment"]==5), "Response STD"]
-    F, p = f_oneway(a, b, c, d, e)
-    print(f"The results of the 1-way between subjects ANOVA for factor Experiment on Control Level = 5: F={F:03f}, p=={p:03f}")
-    st.markdown(f"The results of the 1-way between-subjects ANOVA on STDs for factor Experiment on Control Level = 5: F={F:.03f}, p={p:.03f}")
     
-    # Post-hoc tests:
-    res = tukey_hsd(a, b, c, d, e)
-    print(res)
+    ###################################
+    ###################################
+    # STATISTICS COMPARING EXPERIMENTS
+    ###################################
+    ###################################
     
-    #res2 = pd.DataFrame(res)
+    st.markdown("## RESULTS OF STATISTICAL TESTS")
+    st.markdown("""The following section displays the results of ANOVAs comparing the results from Experiments 1-5.""")
     
-    #####
-    # BIG ANOVA
     
     # Load data
     df_long_all = pd.read_csv('DATA_MeasuringSoA_long_ALL.csv')
     
+    
+    ##########################
+    # 5x11 repeated measures ANOVA, DV: difference
+    ##########################
+    
     # Perform the ANOVA
-    st.markdown(f"#### Big analysis: 5x11 repeated measures ANOVA - means")
+    st.markdown(f"##### Analysis 1A: 5x11 repeated measures ANOVA on deviations from level-of-control")
+    st.markdown("""The table below displays the results of ANOVAs testing the influence of level of control (0%-100%) and experiment (1-5) 
+                on the deviations of participants' responses from objective level of control.""")
     # Prepare data
     df_temp = df_long_all.loc[df_long_all["Include"] == 1,["SubNum", "control_level", "Experiment", "difference"]].groupby(["SubNum","control_level", "Experiment"]).mean().reset_index()
     # PINGOUIN
@@ -507,8 +510,16 @@ if button_radio == 'Comparison of experiments':
     #st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
     
+    ##########################
+    # 4x11 repeated measures ANOVA, DV: difference
+    ##########################
+    
     # Perform the ANOVA
-    st.markdown(f"##### Without Exp 4: 4x11 repeated measures ANOVA - means")
+    st.markdown(f"##### Analysis 1B: 4x11 repeated measures ANOVA on deviations from level-of-control")
+    st.markdown("""The table below displays the results of ANOVAs testing the influence of level of control (0%-100%) and experiment 
+                on the deviations of participants' responses from objective level of control. In contrast to the previous analysis it does not 
+                include data from Experiment 4. The results show that without that experiment the main effect of experiment, as well as the 
+                interation stop being statistically significant.""")
     # Prepare data
     df_temp2 = df_temp.loc[df_temp["Experiment"] != 4,:]
     # PINGOUIN
@@ -517,9 +528,14 @@ if button_radio == 'Comparison of experiments':
     #st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
     
+    ##########################
+    # 5x11 repeated measures ANOVA, DV: STD
+    ##########################
     
     # Perform the ANOVA on STDs
-    st.markdown(f"#### Big analysis: 5x11 repeated measures ANOVA - STDs")
+    st.markdown(f"##### Analysis 2A: 5x11 repeated measures ANOVA on standard deviations of deviations from objective level of control")
+    st.markdown("""The table below displays the results of ANOVAs testing the influence of level of control (0%-100%) and experiment (1-5) 
+                on standard deviations of participants' responses.""")
     # Prepare data
     df_temp = df_long_all.loc[df_long_all["Include"] == 1,["SubNum", "control_level", "Experiment", "difference"]].groupby(["SubNum","control_level", "Experiment"]).std().reset_index()
     # PINGOUIN
@@ -528,8 +544,15 @@ if button_radio == 'Comparison of experiments':
     #st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
 
+    ##########################
+    # 4x11 repeated measures ANOVA, DV: STD
+    ##########################
+    
     # Perform the ANOVA
-    st.markdown(f"##### Without Exp 4: 4x11 repeated measures ANOVA - STDs")
+    st.markdown(f"##### Analysis 2B: 4x11 repeated measures ANOVA on standard deviations of deviations from objective level of control")
+    st.markdown("""The table below displays the results of ANOVAs testing the influence of level of control (0%-100%) and experiment (1-5) 
+                on standard deviations of participants' responses. Similarly to Analysis 1B it does not include the data from Experiment 4. Without 
+                this data the main effect of Experiment, as well as the interaction stop being statistically significant.""")
     # Prepare data
     df_temp2 = df_temp.loc[df_temp["Experiment"] != 4,:]
     # PINGOUIN
@@ -807,7 +830,8 @@ if button_radio == 'Preregistered analyses':
     # ANALYSIS 1
     # --------------------------------------
     st.markdown("### **ANALYSIS 1**: performed to evaluate the fit of the data.")
-    st.markdown("#### **Analysis 1a**")
+    st.markdown("#### ========== **Analysis 1a** ========== ")
+    st.markdown("##### **Analysis 1a: performed on medians across blocks** ")
     st.markdown("""**Analysis 1a (median)**: A linear regression with Objective level of Control as an independent variable and median 
                 reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
                 rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
@@ -829,7 +853,8 @@ if button_radio == 'Preregistered analyses':
     st.text(model.summary())
     
     # --------------------------------------
-    st.markdown("""**Analysis 1a (mean)**: A linear regression with Objective level of Control as an independent variable and median 
+    st.markdown("##### **Analysis 1a-extra: performed on means across blocks** ")
+    st.markdown("""**Analysis 1a-extra (mean)**: A linear regression with Objective level of Control as an independent variable and median 
                 reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
                 rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
                 
@@ -851,33 +876,33 @@ if button_radio == 'Preregistered analyses':
     
     
     
-    # --------------------------------------
-    st.markdown("""**Analysis 1a (mean from Block1)**: A linear regression with Objective level of Control as an independent variable and median 
-                reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
-                rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
+    # # --------------------------------------
+    # st.markdown("""**Analysis 1a (mean from Block 1)**: A linear regression with Objective level of Control as an independent variable and median 
+    #             reported Sense of Agency as a dependent variable. The dependent variable will be participant’s median response, 
+    #             rather than mean, in order to reduce the influence of potential outliers caused by loss of attention during the task. """)
                 
     
-    # Prepare data
-    #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
-    df_temp = df.loc[df["block"] == 1,["SubNum", "control_level", "response"]].groupby(["SubNum", "control_level"]).mean().reset_index()
-    X = df_temp[["control_level"]].to_numpy()
-    y = df_temp["response"].to_numpy()
+    # # Prepare data
+    # #df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "response"]].groupby("SubNum").mean()
+    # df_temp = df.loc[df["block"] == 1,["SubNum", "control_level", "response"]].groupby(["SubNum", "control_level"]).mean().reset_index()
+    # X = df_temp[["control_level"]].to_numpy()
+    # y = df_temp["response"].to_numpy()
     
     
-    # Add a constant (for the intercept term)
-    X = sm.add_constant(X)
-    # Fit the model
-    model = sm.OLS(y, X).fit()
-    # Print the summary
-    print(model.summary())
-    st.text(model.summary())
+    # # Add a constant (for the intercept term)
+    # X = sm.add_constant(X)
+    # # Fit the model
+    # model = sm.OLS(y, X).fit()
+    # # Print the summary
+    # print(model.summary())
+    # st.text(model.summary())
     
     
     # =============================
     # ANALYSIS 1B
     
     # --------------------------------------
-    st.markdown("#### **Analysis 1b**")
+    st.markdown("#### ========== **Analysis 1b** ========== ")
     st.markdown("""**Analysis 1b**: A linear mixed model (LMM) with Objective level of Control treated as a covariate, and Participant 
                 treated as a random effect. The dependent variable will be the reported level of sense of agency (DV1).. """)
                 
@@ -907,7 +932,7 @@ if button_radio == 'Preregistered analyses':
     
     # ANALYSIS 2
     st.markdown("### **ANALYSIS 2**: performed to investigate the deviations of sense of agency from the objective level of control.")
-    st.markdown("#### **Analysis 2a**")
+    st.markdown("#### ========== **Analysis 2a** ==========")
     st.markdown("""**Analysis 2a**: A one-way ANOVA with factor Objective level of Control (11 levels: from 0% to 100%, every 10%) 
                 followed by a series of t-tests comparing median response deviation for each participant from zero. The dependent 
                 variable will be participant’s median response deviation, rather than mean response deviation in order to reduce the 
@@ -915,11 +940,13 @@ if button_radio == 'Preregistered analyses':
                 
     # Prepare data
     df_temp = df.loc[:,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).median().reset_index()
+    
     # STATSMODELS
     # Fit the model
-    anova = AnovaRM(df_temp, depvar='difference', subject='SubNum', within=['control_level']).fit()
-    st.markdown("STATSMODELS RESULTS:")
-    st.text(anova)
+    # anova = AnovaRM(df_temp, depvar='difference', subject='SubNum', within=['control_level']).fit()
+    # st.markdown("STATSMODELS RESULTS:")
+    # st.text(anova)
+    
     # PINGOUIN
     # Perform repeated measures ANOVA
     anova_results = rm_anova(data=df_temp, dv='difference', within='control_level', subject='SubNum')
@@ -934,7 +961,7 @@ if button_radio == 'Preregistered analyses':
     
         
     ### ANALYSIS 2b
-    st.markdown("#### **Analysis 2b**")
+    st.markdown("#### ========== **Analysis 2b** ==========")
     st.markdown("""**Analysis 2b**: A linear mixed model (LMM) with Objective level of Control (11 levels: from 0% to 100%, every 10%) 
                 treated as a factor, and Participant treated as a random effect on DV2 (response deviation). """)
                 
@@ -2036,7 +2063,7 @@ if button_radio == 'Explore data from each participant':
     
     df_resp = df.loc[df['SubNum']==sub_num,['SubNum', 'response']]
     # Tell streamlit to plot it
-    sns.histplot(df_resp['response'], bins=25 ,alpha=0.5)
+    #sns.histplot(df_resp['response'], bins=25 ,alpha=0.5)
     
 
     # Tell streamlit to plot it
