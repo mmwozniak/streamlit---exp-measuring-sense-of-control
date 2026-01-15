@@ -613,6 +613,9 @@ if button_radio == 'Results of specific experiments':
     # SHOW RESULTS OF THE T-TEST
     
     st.markdown("## **ANOVAs with post hoc tests (on averages across blocks)**")
+    st.markdown("""**The following analyses are all conducted on means (and not medians). 
+                These results are reported in the main text. The preregistered analyses involve medians 
+                (Exp 1A, 1B, 1C, 2, 3) and means (Exp 4 and 5)**""")
         
     # Experiment 1C: 2x11 ANOVA
     if selected_exp_num == '1C':
