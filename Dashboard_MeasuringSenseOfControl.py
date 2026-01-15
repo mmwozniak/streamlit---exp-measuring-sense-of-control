@@ -619,7 +619,7 @@ if button_radio == 'Results of specific experiments':
         
         st.markdown(f"#### Experiment {selected_exp_num}: 2x11 repeated measures ANOVA")
         # Prepare data
-        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "scale", "difference"]].groupby(["SubNum","control_level", "scale"]).mean().reset_index()
+        df_temp = df.loc[:,["SubNum", "control_level", "scale", "difference"]].groupby(["SubNum","control_level", "scale"]).mean().reset_index()
 
         # PINGOUIN
         # Perform repeated measures ANOVA
@@ -633,7 +633,7 @@ if button_radio == 'Results of specific experiments':
         
         st.markdown(f"#### Experiment {selected_exp_num}: Friedman test")
         # Prepare data
-        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
+        df_temp = df.loc[:,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
 
         # PINGOUIN
         # Perform repeated measures ANOVA
@@ -647,7 +647,7 @@ if button_radio == 'Results of specific experiments':
         
         st.markdown(f"#### Experiment {selected_exp_num}: Friedman test")
         # Prepare data
-        df_temp = df.loc[df["Include"] == 1,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
+        df_temp = df.loc[:,["SubNum", "control_level", "difference"]].groupby(["SubNum","control_level"]).mean().reset_index()
         
         # STATSMODELS
         # Fit the model
