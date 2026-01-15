@@ -2,7 +2,7 @@
 """
 Created on Wed Nov 11 12:30:00 2024
 
-STREAMLIT DASHBOARD for CultEvoSelf project
+STREAMLIT DASHBOARD for MeasuringSenseOfControl project
 
 To run locally type this in Anaconda Prompt:
     streamlit run Dashboard_MeasuringSenseOfControl.py
@@ -843,6 +843,11 @@ if button_radio == 'Preregistered analyses':
     X = df_temp[["control_level"]].to_numpy()
     y = df_temp["response"].to_numpy()
     
+    if selected_exp_num == "1C":
+        df_temp = df.loc[:,["SubNum", "control_level", "scale", "response"]].groupby(["SubNum", "control_level", "scale"]).median().reset_index()
+        X = df_temp[["control_level", "scale"]].to_numpy()
+        y = df_temp["response"].to_numpy()
+    
     
     # Add a constant (for the intercept term)
     X = sm.add_constant(X)
@@ -913,6 +918,11 @@ if button_radio == 'Preregistered analyses':
     model = mixedlm("response ~ control_level", df, groups="SubNum")
     result = model.fit() 
     
+    if selected_exp_num == "1C":
+        df_temp = df.loc[:,["SubNum", "control_level", "scale", "response"]] #.groupby(["control_level"]).median().reset_index()
+        # Fit the linear mixed model
+        model = mixedlm("response ~ control_level + scale", df, groups="SubNum")
+        result = model.fit() 
     
     # Extract variance components    
     #variance_components = result.cov_re.diagonal()  # Random effect variances
@@ -950,14 +960,18 @@ if button_radio == 'Preregistered analyses':
     # PINGOUIN
     # Perform repeated measures ANOVA
     anova_results = rm_anova(data=df_temp, dv='difference', within='control_level', subject='SubNum')
+    
+    
+    if selected_exp_num == "1C":
+        df_temp = df.loc[:,["SubNum", "control_level", "scale", "difference"]].groupby(["SubNum","control_level", "scale"]).median().reset_index()
+        anova_results = rm_anova(data=df_temp, dv='difference', within=['control_level', 'scale'], subject='SubNum')
+        
     st.markdown("PINGUOIN RESULTS:")
     st.table(anova_results)
+        
     
     
-    
-    
-    
-    
+
     
         
     ### ANALYSIS 2b
@@ -970,6 +984,14 @@ if button_radio == 'Preregistered analyses':
     # Fit the linear mixed model
     model = mixedlm("difference ~ control_level", df, groups="SubNum")
     result = model.fit() 
+    
+    if selected_exp_num == "1C":
+        # Prepare data
+        df_temp = df.loc[:,["SubNum", "control_level", "scale", "difference"]] #.groupby(["control_level"]).median().reset_index()
+        # Fit the linear mixed model
+        model = mixedlm("difference ~ control_level + scale", df, groups="SubNum")
+        result = model.fit() 
+    
     # Print the results
     st.text(result.summary())
 
@@ -985,15 +1007,15 @@ if button_radio == 'Variance decomposition analysis':
     st.markdown('''This section presents the results of Variance Decomposition Analysis 
                 (see: [1](https://doi.org/10.1016/j.indmarman.2022.10.020), 
                 [2](https://www.statsmodels.org/dev/examples/notebooks/generated/variance_components.html)). 
-                As the name implies, it allows to 
-                decompose the variance of participants' responses into different sources: variance reflected by different 
-                expermental conditions (viariability reflecting different levels of control), variance reflecting differences 
-                between different participants  (between-subject variability) and the unexplained variance (error variability). 
-                Importantly, here we separate two types of variability reflecting the experimental conditions: variability reflecting 
-                the objective level of control (objective LoC), and variability reflecting the group-level bias when evaluating different levels of 
-                control (bias in LoC).
+                VDA allows to decompose the total variability present in the data into separate components. 
+                For example, it can allow to determine what percentage of the variance 
+                can be attributed to the effect of an experimental manipulation, to variability across individual participants, 
+                and how much remains unexplained. Here, we used VDA to determine what percentage of the variance of participants’ 
+                responses (hereafter, response variance) was explained by the objective level of control 
+                participants had on each trial (LoC-Objective), the group-level response biases at each level of control (LoC-Bias), 
+                the between-subject variance, and the residual unexplained variance. 
                 ''')
-    st.markdown('''In the first step we calculate the total variability of participants' responses in the task:
+    st.markdown('''First, we calculate the total variability of participants' responses in the task:
                 ''')
     
     
@@ -1017,19 +1039,19 @@ if button_radio == 'Variance decomposition analysis':
     st.text(f"Total variance of responses: {total_variance_response:.3f}")
     
     st.markdown("""This value represents the total amount of variance in the data that has to be explained. 
-                One source of this variance is the fact that in different trials participants control the red ball over which 
-                they have objectively different level of control: 0%, 10%, up to 100%. Hence, one source of variability of responses 
-                reporting participants' sense of control comes from the fact that they had objctively different levels of control. 
-                This variability can be removed if we look at the variability not of participants' responses, but the variability of 
-                the differences between their responses and the objective level of control. In other words: at the variability of their 
-                deviations.
+                In the first step of the VDA, we calculated LoC-Objective to capture the extent to which participants’ responses stick 
+                to the “ground truth” of the objective LoC, i.e., conform to the idealized linear relationship between SoC and LoC. 
+                Put another way, LoC-Objective captures the portion of the response variance explained 
+                by objective LoC treated as a continuous linear predictor. One method to compute LoC-Objective is to calculate the 
+                response variance and then subtract the deviation variance, i.e., the variance of the deviations of participants’ 
+                reported SoC from the corresponding objective LoC.
                  """)
     
     st.markdown("#### **TOTAL VARIANCE OF DIFFERENCES/DEVIATIONS**")
     st.text(f"Total variance of the deviations: {total_variance_difference:.3f}")
     
     st.markdown("""The variance of deviations is much lower than the variance of responses. This is because we removed 
-                the variance caused by the linear effect of the objective level of control. This variance accounted for the following 
+                the variance caused by the linear effect of the objective level of control, which accounted for the following 
                 percentage of total variance of participants' responses:
                  """)
     
@@ -1060,47 +1082,54 @@ if button_radio == 'Variance decomposition analysis':
     #     st.scatter_chart(data=df, x="control_level", y="difference", size=10)
     # st.markdown("""***Figure 2.*** *Scatter plots of participants' responses (left) and deviations of responses from objective 
     #             level of control (right).*
-    #              """)
+    #               """)
            
     
-    st.markdown("""The remaining variance is the variance that can be attributed to participants' biases in responses to 
-                different levels of the experimental conditions (level of control), their indivividual differences 
-                (between-subject variability) and the unexplained variance. These values can be estimated using the 
-                Linear Mixed Models approach. 
+    st.markdown("""
+                
+                In the second step of the VDA, we further decomposed the deviation variance into the portions explained by LoC-Bias, 
+                the between-subject variance, and the residual unexplained variance. We calculated LoC-Bias to capture the extent to 
+                which participants’ responses reflect group-level deviations of SoC from the ground truth. Put another way, we 
+                calculated LoC-Bias to capture how much variance is explained by the average group-level response, i.e., by 
+                knowing that on average, participants tend to underestimate SoC at lower levels of LoC. LoC-Bias is computed 
+                by calculating the portion of the deviation variance explained by objective LoC treated as a categorical predictor. 
+                Importantly, this allows to estimate nonlinear influences of LoC on SoC. Thus, we calculated LoC-Bias by performing 
+                a linear mixed model analysis with the deviations of participants’ responses as the dependent variable, LoC as 
+                a categorical fixed effect, and participant as a random effect. 
                  """)
     
-    st.markdown("""In the first step we evaluate a null model in which we do not model the effect of the experimental conditions. 
-                We perform this model on the deviations (between the reports and the objctive level of control).
-                """)
+    # st.markdown("""In the first step we evaluate a null model in which we do not model the effect of the experimental conditions. 
+    #             We perform this model on the deviations (between the reports and the objctive level of control).
+    #             """)
     
-    # ------------------
-    st.markdown(" ### MODEL 0: Null model with random effect of participants")
-    # Prepare data
-    df_temp = df.loc[:,["SubNum", "difference", "response"]]
-    # Specifying the model
-    vc = {"Participant": "1 + C(SubNum)"}
-    model0 = sm.MixedLM.from_formula("difference ~ 1", groups="SubNum", vc_formula=vc, data=df_temp)
-    result0 = model0.fit()
-    # Print the results
-    st.text(result0.summary())
+    # # ------------------
+    # st.markdown(" ### MODEL 0: Null model with random effect of participants")
+    # # Prepare data
+    # df_temp = df.loc[:,["SubNum", "difference", "response"]]
+    # # Specifying the model
+    # vc = {"Participant": "1 + C(SubNum)"}
+    # model0 = sm.MixedLM.from_formula("difference ~ 1", groups="SubNum", vc_formula=vc, data=df_temp)
+    # result0 = model0.fit()
+    # # Print the results
+    # st.text(result0.summary())
     
-    # Comparison with total variance of deviations
-    st.markdown(f"""The LMM model estimated the variance that can be explained by differences between participants (the last 
-                row, "Participant Var": {result0.vcomp[0]:.2f}"), as well as the unexplained variance (here presented under 
-                the name of "scale": {result0.scale:.2f})
-                """)
-    var_in_model0 = result0.scale + result0.vcomp[0]
-    st.text(f"Total variance in Model 0: {var_in_model0:.2f}")
-    st.text(f"Total variance of deviations: {total_variance_difference:.2f}")
+    # # Comparison with total variance of deviations
+    # st.markdown(f"""The LMM model estimated the variance that can be explained by differences between participants (the last 
+    #             row, "Participant Var": {result0.vcomp[0]:.2f}"), as well as the unexplained variance (here presented under 
+    #             the name of "scale": {result0.scale:.2f})
+    #             """)
+    # var_in_model0 = result0.scale + result0.vcomp[0]
+    # st.text(f"Total variance in Model 0: {var_in_model0:.2f}")
+    # st.text(f"Total variance of deviations: {total_variance_difference:.2f}")
     
-    st.markdown("""These values should be very similar, although they do not need to be exactly identical. A small difference 
-                might be due to numerical approximations used when performing calculations during estimation of the LMM model.
-                """)
+    # st.markdown("""These values should be very similar, although they do not need to be exactly identical. A small difference 
+    #             might be due to numerical approximations used when performing calculations during estimation of the LMM model.
+    #             """)
     
     st.markdown(" ### MODEL 1: Model with fixed effect of level of control and random effect of participants")
-    st.markdown("""The null model doesn't take into consideration the effect of experimental condition. Therefore as the final 
-                step we stimated a model that includes level of control as a fixed effect and participants as a random effect:
-                """)
+    # st.markdown("""The null model doesn't take into consideration the effect of experimental condition. Therefore as the final 
+    #             step we stimated a model that includes level of control as a fixed effect and participants as a random effect:
+    #             """)
     
     # Prepare data
     df_temp = df.loc[:,["SubNum", "control_level", "difference", "response"]]
@@ -1111,30 +1140,35 @@ if button_radio == 'Variance decomposition analysis':
     # Print the results
     st.text(result1.summary())
     
-    st.markdown("""As can be seen below the sum of within-participants variance and the unexplained variance is lower than 
-                in Model 0 - that's because we added the fixed factor of level of control, which explained part of the 
-                variance from the null model:
+    st.markdown("""The important values from the LMM are 'Participant Var', which reflects between-subject variability, and 
+                'Scale' which reflects the unexplained variance.:
                 """)
     
     var_in_model1 = result1.scale + result1.vcomp[0]
-    var_dev_loc_bias = var_in_model0-var_in_model1
-    var_dev_loc_bias_perc = 100*(var_in_model0-var_in_model1)/var_in_model0
+    #var_dev_loc_bias = var_in_model0-var_in_model1
+    var_dev_loc_bias = total_variance_difference-var_in_model1
+    var_dev_loc_bias_perc = 100*(total_variance_difference-var_in_model1)/total_variance_difference
     
-    st.text(f"Total variance in Model 1: {var_in_model1:.2f}")
-    st.text(f"Total variance in Model 0: {var_in_model0:.2f}")
+    st.text(f"Between-subject variance in Model 1: {result1.vcomp[0]:.2f}")
+    st.text(f"Unexplained variance in Model 1: {result1.scale:.2f}")
+    
+    st.markdown("""Now we can calculate the variance explained the LoC-Bias by subtracting the two above 
+                (unexplained variance and group-level variance) from total variance of deviations:
+                 """)
+    st.text(f"Variance explained by LoC-Bias: {var_dev_loc_bias:.2f}")
+    #st.text(f"Total variance in Model 0: {total_variance_difference:.2f}")
     # st.text(f"Variance of deviations explained by level of control: {var_dev_loc_bias:.2f} ({var_dev_loc_bias_perc:.2f}%)")
     # st.text(f"Variance of deviations explained by the within-subject variability: {result1.vcomp[0]:.2f} ({100*result1.vcomp[0]/var_in_model0:.2f}%)")
     # st.text(f"Unexplained variance of deviations: {result1.scale:.2f} ({100*result1.scale/var_in_model0:.2f}%)")
     
     st.markdown("#### **VARIANCE DECOMPOSITION OF DEVIATIONS**")
-    st.markdown("""By subtracting the total varience in Model 1 from total variance in Model 0 we obtained the amount 
-                of variance explained by the experimental condition, and we can provide a full decomposition for deviations 
+    st.markdown("""These steps allow us to provide a full decomposition for deviations 
                 from the objective level of control:
                 """)
                 
     vda_difference = pd.DataFrame(data=[
-        ["Level of Control: bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_difference],
-        ["Within-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_difference],
+        ["LoC-Bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_difference],
+        ["Between-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_difference],
         ["Unexplained", result1.scale, 100*result1.scale/total_variance_difference],
         ["TOTAL VARIANCE", total_variance_difference, 100]],
         columns=["Variance explained by:", "Variance", "Percentage"])
@@ -1150,9 +1184,9 @@ if button_radio == 'Variance decomposition analysis':
     # st.text(f"Unexplained variance of responses: {result1.scale:.2f} ({100*result1.scale/total_variance_response:.2f}%)")
     
     vda_response = pd.DataFrame(data=[
-        ["Level of Control: linear", total_variance_response-total_variance_difference, 100-100*total_variance_difference/total_variance_response],
-        ["Level of Control: bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_response],
-        ["Within-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_response],
+        ["LoC-Objective", total_variance_response-total_variance_difference, 100-100*total_variance_difference/total_variance_response],
+        ["LoC-Bias", var_dev_loc_bias, 100*var_dev_loc_bias/total_variance_response],
+        ["Between-subject", result1.vcomp[0], 100*result1.vcomp[0]/total_variance_response],
         ["Unexplained", result1.scale, 100*result1.scale/total_variance_response],
         ["TOTAL VARIANCE", total_variance_response, 100]],
         columns=["Variance explained by:", "Variance", "Percentage"])
@@ -1611,8 +1645,8 @@ if button_radio == 'Cluster analysis':
     # df_kmeans = x.copy().reset_index()
     
     
-    # ##########################
-    # # PERFORM CLUSTER ANALYSIS FOR THREE CLUSTERS
+    ##########################
+    # PERFORM CLUSTER ANALYSIS FOR THREE CLUSTERS
     
     st.markdown("### Perform cluster analysis for 3 clusters")
     
@@ -1641,7 +1675,8 @@ if button_radio == 'Cluster analysis':
 
     # # Custom palette
     # cust_pal = sns.color_palette('Set1')
-    # pal_exp3clust = [  cust_pal[2], cust_pal[0], cust_pal[1] ] #, cust_pal[3], ]
+    # pal_exp3clust = [  cust_pal[1], cust_pal[0], cust_pal[2] ] #, cust_pal[3],                 ]
+    # pal_exp3clust = [  cust_pal[0], cust_pal[1], cust_pal[2] ] #, cust_pal[3] ,  ]
 
     # # Plot data
     # sns.lineplot(data=df_k_long, x='Control', y='Difference', hue='Cluster', palette=pal_exp3clust, legend=None)
@@ -1702,6 +1737,8 @@ if button_radio == 'Cluster analysis':
     # ##########################
     # # PERFORM CLUSTER ANALYSIS FOR THE HIGHEST SILHOUETTE SCORE
 
+    st.markdown("### Plot solution for 2 clusters")
+    
     # # Perform the target cluster analysis   
     # k = int(max_silhouette_first4)
     # kmeans = KMeans(init = "k-means++", n_clusters=k, n_init = 20)
@@ -1742,7 +1779,7 @@ if button_radio == 'Cluster analysis':
     # st.pyplot(fig3)
     fig_filename = f'figures_all_cluster_analyses/cluster_maxsilh_clusters_{selected_selectbox}_Exclude_{selectbox_exclude_outliers}.png'
     st.image(image=fig_filename)
-    st.markdown(f"***Figure 3.*** *Results of the cluster analysis for the number of clusters with the highest Siluoette score. Data from Experiment {selected_exp_num}*. ")
+    st.markdown(f"***Figure 3.*** *Results of the cluster analysis for 2 clusters. Data from Experiment {selected_exp_num}*. ")
     
 
 
