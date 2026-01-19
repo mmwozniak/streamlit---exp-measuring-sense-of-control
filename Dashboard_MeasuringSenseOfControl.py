@@ -2066,7 +2066,7 @@ if button_radio == 'Explore data from each participant':
     ############################
     
     # Check the number of subjects and apply to the slider
-    number_of_subjects = df['SubNum'].max()
+    number_of_subjects = int(df['SubNum'].max())
     order_num = st.slider('Select participant (sorted from highest negative to highest positive bias)', 1, number_of_subjects)
     
     # Dictionary linking subject number and the order basd on BIAS
