@@ -7,7 +7,6 @@ attrs==22.1.0
 autopep8==1.6.0
 Babel==2.11.0
 backcall==0.2.0
-backports.zoneinfo==0.2.1
 bcrypt==4.0.1
 beautifulsoup4==4.11.1
 binaryornot==0.4.4
